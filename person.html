@@ -195,14 +195,17 @@ async function loadPerson(){
   const photo=data.photo_url?'<img src="'+esc(data.photo_url)+'" alt="" referrerpolicy="no-referrer" onerror="this.remove()">':"";
   const birth=data.birth_date?fmt(data.birth_date):"未確認";
   const sex=({male:"男性",female:"女性",other:"その他"})[data.sex]||"未確認";
+  const birthplace=data.birthplace||"未確認";
   const overview=data.overview||data.bio||"概要は準備中です。";
+  const background=data.background||"経歴・生い立ちは確認できた公開資料から順次追加しています。";
   document.getElementById("personPanel").innerHTML=
     '<div class="person-head"><div class="person-hero-photo"><span>'+initial+'</span>'+photo+'</div><div>'+
     '<div class="meta"><span>'+esc(roleLabel(data.role))+'</span><span>確認済み</span></div>'+
     '<h1 class="title">'+esc(data.display_name)+'</h1>'+
     '<p>'+esc(data.organization||"所属情報未掲載")+'</p>'+
-    '<div class="grid"><div class="box"><h3>生年月日</h3><div>'+esc(birth)+'</div></div><div class="box"><h3>性別</h3><div>'+esc(sex)+'</div></div></div>'+
+    '<div class="grid"><div class="box"><h3>生年月日</h3><div>'+esc(birth)+'</div></div><div class="box"><h3>性別</h3><div>'+esc(sex)+'</div></div><div class="box"><h3>出身地</h3><div>'+esc(birthplace)+'</div></div></div>'+
     '<h2 style="font-size:15px;margin:13px 0 6px">概要</h2><p class="summary">'+esc(overview)+'</p>'+
+    '<h2 style="font-size:15px;margin:13px 0 6px">経歴・生い立ち</h2><p class="summary">'+esc(background)+'</p>'+
     '<div class="profile-links">'+
     (data.profile_url?'<a target="_blank" rel="noopener" href="'+esc(data.profile_url)+'">公式プロフィール</a>':'')+
     '</div><div id="verifiedPersonSources" class="small" style="margin-top:8px">確認資料を読み込み中...</div></div></div>';
