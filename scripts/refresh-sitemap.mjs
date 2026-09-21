@@ -124,3 +124,5 @@ fs.writeFileSync("sitemaps/static.xml",urlset(staticUrls));
 const today=new Date().toISOString().slice(0,10);
 fs.writeFileSync("sitemap.xml",'<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'+["cases","people","static"].map(n=>'  <sitemap><loc>https://saibanwatch.github.io/sitemaps/'+n+'.xml</loc><lastmod>'+today+'</lastmod></sitemap>').join('\n')+'\n</sitemapindex>\n');
 console.log("Generated",cases.length,"case pages and",people.length,"person pages");
+
+// refresh-trigger: 2026-09-21-new-people
