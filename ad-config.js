@@ -1,0 +1,1 @@
+window.COURTWATCH_AD_CONFIG={enabled:!1,destinationUrl:"",everyN:3,cooldownMs:6e5,eligibleActions:["open-case","open-person","open-auth"]};
