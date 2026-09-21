@@ -38,3 +38,30 @@ if(document.prerendering){document.addEventListener("prerenderingchange",send,{o
 else if(document.readyState==="complete")setTimeout(send,0);
 else window.addEventListener("load",()=>setTimeout(send,0),{once:true});
 })();
+;(()=>{"use strict";
+const m=(location.pathname||"").match(/\/people\/([0-9a-f-]{36})\.html$/i);
+if(!m)return;
+const run=async()=>{
+  const head=document.querySelector(".personhead");
+  if(!head||/生年月日/.test(head.textContent||""))return;
+  const id=m[1],base="https://czhssdmwilnbrexqmtqg.supabase.co",key="sb_publishable_HhXl8I3L4z-UF168b6wSiQ_WrQXa1Uc";
+  try{
+    const r=await fetch(base+"/rest/v1/people?id=eq."+encodeURIComponent(id)+"&verification_status=eq.verified&select=birth_date,sex,overview,bio&limit=1",{headers:{apikey:key,Authorization:"Bearer "+key},credentials:"omit"});
+    if(!r.ok)return;
+    const row=(await r.json())[0];if(!row)return;
+    const info=head.querySelector(":scope > div:last-child");if(!info)return;
+    info.querySelectorAll(":scope > p").forEach(p=>p.remove());
+    const sex=({male:"男性",female:"女性",other:"その他"})[row.sex]||"未確認";
+    let birth="未確認";
+    if(row.birth_date){const a=row.birth_date.split("-").map(Number);if(a.length===3)birth=a[0]+"年"+a[1]+"月"+a[2]+"日";}
+    const overview=row.overview||row.bio||"概要は準備中です。";
+    const wrap=document.createElement("div");
+    wrap.setAttribute("data-person-extra","1");
+    wrap.innerHTML='<div class="grid" style="margin-top:12px"><div class="info"><h3>生年月日</h3><p></p></div><div class="info"><h3>性別</h3><p></p></div></div><h3>概要</h3><p class="person-overview"></p>';
+    const ps=wrap.querySelectorAll(".info p");ps[0].textContent=birth;ps[1].textContent=sex;
+    wrap.querySelector(".person-overview").textContent=overview;
+    info.appendChild(wrap);
+  }catch{}
+};
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",run,{once:true});else run();
+})();
