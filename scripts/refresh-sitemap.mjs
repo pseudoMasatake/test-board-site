@@ -34,7 +34,8 @@ const [
 const h=s=>String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 const xml=s=>String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;");
 const txt=(s,n=1000)=>String(s??"").replace(/\s+/g," ").trim().slice(0,n);
-const safe=u=>{try{const x=new URL(u);return /^https?:$/.test(x.protocol)?x.href:""}catch{return""}};\nconst jpdate=d=>{const m=String(d||"").match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);return m?Number(m[1])+"年"+Number(m[2])+"月"+Number(m[3])+"日":String(d||"")};
+const safe=u=>{try{const x=new URL(u);return /^https?:$/.test(x.protocol)?x.href:""}catch{return""}};
+const jpdate=d=>{const m=String(d||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?Number(m[1])+"年"+Number(m[2])+"月"+Number(m[3])+"日":String(d||"")};
 const roles={judge:"裁判官",prosecutor:"検察官",lawyer:"弁護士",plaintiff:"原告",defendant:"被告",accused:"被告人",other:"関係者"};
 const personById=new Map(people.map(p=>[p.id,p]));
 const caseById=new Map(cases.map(c=>[c.id,c]));
