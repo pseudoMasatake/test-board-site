@@ -246,7 +246,7 @@ async function loadCases(){
 
 async function loadPeopleProfiles(){
   const {data,error}=await sb.from("people")
-    .select("id,display_name,role,organization,birth_date,sex,overview,bio,verification_status")
+    .select("id,display_name,role,organization,birth_date,sex,birthplace,overview,background,bio,verification_status")
     .eq("verification_status","verified")
     .order("display_name");
   if(error){content.innerHTML='<div class="empty">人物情報を取得できません。</div>';console.error(error);return}
@@ -262,7 +262,9 @@ async function loadPeopleProfiles(){
           '<option value="female"'+(p.sex==="female"?' selected':'')+'>女性</option>'+
           '<option value="other"'+(p.sex==="other"?' selected':'')+'>その他</option>'+
         '</select>'+
+        '<input id="profile-birthplace-'+esc(p.id)+'" value="'+esc(p.birthplace||"")+'" placeholder="出身地">'+
         '<textarea id="profile-overview-'+esc(p.id)+'" placeholder="概要">'+esc(p.overview||p.bio||"")+'</textarea>'+
+        '<textarea id="profile-background-'+esc(p.id)+'" placeholder="経歴・生い立ち">'+esc(p.background||"")+'</textarea>'+
       '</div>'+
       '<div class="candidate-note">生年月日・性別は公開資料で確認できた場合だけ入力してください。推測入力はしないでください。</div>'+
       '<div class="actions"><button class="btn primary" onclick="savePersonProfile(\''+esc(p.id)+'\')">人物情報を保存</button></div>'+
@@ -273,8 +275,10 @@ async function loadPeopleProfiles(){
 async function savePersonProfile(personId){
   const birth_date=document.getElementById("profile-birth-"+personId)?.value||null;
   const sex=document.getElementById("profile-sex-"+personId)?.value||null;
+  const birthplace=document.getElementById("profile-birthplace-"+personId)?.value.trim()||null;
   const overview=document.getElementById("profile-overview-"+personId)?.value.trim()||null;
-  const {error}=await sb.from("people").update({birth_date,sex,overview}).eq("id",personId);
+  const background=document.getElementById("profile-background-"+personId)?.value.trim()||null;
+  const {error}=await sb.from("people").update({birth_date,sex,birthplace,overview,background}).eq("id",personId);
   if(error){alert("人物情報を保存できませんでした。");console.error(error);return}
   alert("人物情報を保存しました。");
 }
@@ -287,7 +291,7 @@ async function loadPeopleLinking(){
       .order("created_at",{ascending:false})
       .limit(200),
     sb.from("people")
-      .select("id,display_name,role,organization,verification_status,profile_url,source_url,bio,birth_date,sex,overview")
+      .select("id,display_name,role,organization,verification_status,profile_url,source_url,bio,birth_date,sex,birthplace,overview,background")
       .order("display_name"),
     sb.from("case_people")
       .select("person_id,role_label,cases(id,title,court,event_date,status)")
@@ -356,7 +360,9 @@ function renderPendingCandidate(m){
       '<input id="candidate-profile-'+esc(m.id)+'" value="'+esc(p.profile_url||"")+'" placeholder="公式プロフィールURL">'+
       '<input id="candidate-birth-'+esc(m.id)+'" type="date" value="'+esc(p.birth_date||"")+'">'+
       '<select id="candidate-sex-'+esc(m.id)+'"><option value=""'+(!p.sex?' selected':'')+'>性別：未確認</option><option value="male"'+(p.sex==="male"?' selected':'')+'>男性</option><option value="female"'+(p.sex==="female"?' selected':'')+'>女性</option><option value="other"'+(p.sex==="other"?' selected':'')+'>その他</option></select>'+
+      '<input id="candidate-birthplace-'+esc(m.id)+'" value="'+esc(p.birthplace||"")+'" placeholder="出身地">'+
       '<textarea id="candidate-overview-'+esc(m.id)+'" placeholder="概要">'+esc(p.overview||p.bio||"")+'</textarea>'+
+      '<textarea id="candidate-background-'+esc(m.id)+'" placeholder="経歴・生い立ち">'+esc(p.background||"")+'</textarea>'+
     '</div>'+
     '<div class="candidate-note">確認資料: '+(p.source_url?'<a target="_blank" rel="noopener" href="'+esc(p.source_url)+'">判決文・資料を開く</a>':"未登録")+'</div>'+
     '<div class="actions">'+
@@ -384,8 +390,10 @@ async function savePersonCandidate(mentionId){
   const profile_url=document.getElementById("candidate-profile-"+mentionId)?.value.trim()||null;
   const birth_date=document.getElementById("candidate-birth-"+mentionId)?.value||null;
   const sex=document.getElementById("candidate-sex-"+mentionId)?.value||null;
+  const birthplace=document.getElementById("candidate-birthplace-"+mentionId)?.value.trim()||null;
   const overview=document.getElementById("candidate-overview-"+mentionId)?.value.trim()||null;
-  const {error}=await sb.from("people").update({organization,profile_url,birth_date,sex,overview}).eq("id",personId);
+  const background=document.getElementById("candidate-background-"+mentionId)?.value.trim()||null;
+  const {error}=await sb.from("people").update({organization,profile_url,birth_date,sex,birthplace,overview,background}).eq("id",personId);
   if(error){alert("候補情報を保存できませんでした。");console.error(error);return}
   alert("候補情報を保存しました。");
   await loadPeopleLinking();
@@ -403,8 +411,10 @@ async function verifyPersonCandidate(mentionId){
   const profile_url=profile||null;
   const birth_date=document.getElementById("candidate-birth-"+mentionId)?.value||null;
   const sex=document.getElementById("candidate-sex-"+mentionId)?.value||null;
+  const birthplace=document.getElementById("candidate-birthplace-"+mentionId)?.value.trim()||null;
   const overview=document.getElementById("candidate-overview-"+mentionId)?.value.trim()||null;
-  const {error:saveError}=await sb.from("people").update({organization,profile_url,birth_date,sex,overview}).eq("id",p.id);
+  const background=document.getElementById("candidate-background-"+mentionId)?.value.trim()||null;
+  const {error:saveError}=await sb.from("people").update({organization,profile_url,birth_date,sex,birthplace,overview,background}).eq("id",p.id);
   if(saveError){alert("候補情報を保存できませんでした。");console.error(saveError);return}
   const {error}=await sb.rpc("admin_verify_person_candidate",{p_mention_id:mentionId});
   if(error){alert("確認済みに更新できませんでした。");console.error(error);return}
