@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ユーザー | 裁判ウォッチ</title>
+<meta name="description" content="裁判ウォッチのユーザープロフィールと公開投稿">
+<meta name="robots" content="noindex,follow">
+<style>
+:root{--bg:#f5f5f5;--paper:#fff;--ink:#222;--muted:#777;--line:#ddd;--accent:#e05a3f;--danger:#a33a3a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;line-height:1.7;font-size:14px}
+a{color:#4b75a2;text-decoration:none}a:hover{text-decoration:underline}button,input{font:inherit}
+header{background:#fff;border-bottom:1px solid #ccc}.nav{max-width:900px;margin:auto;padding:10px 14px;display:flex;align-items:center;gap:12px}.brand{font-weight:800;color:#333;font-size:21px}.spacer{flex:1}
+.btn{border:1px solid #ccc;background:#fff;border-radius:5px;padding:7px 11px;cursor:pointer}.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn.selected{outline:2px solid #444}.btn:disabled{opacity:.55;cursor:not-allowed}
+main{max-width:900px;margin:14px auto;padding:0 12px}.panel{background:var(--paper);border:1px solid var(--line);border-radius:7px;padding:16px;margin-bottom:12px}.title{font-size:25px;margin:3px 0}.small,.meta{font-size:12px;color:var(--muted)}
+.user-head{display:flex;gap:14px;align-items:center}.avatar{width:58px;height:58px;border-radius:50%;background:#eee;display:grid;place-items:center;font-weight:800;font-size:22px}
+.opinion{display:grid;grid-template-columns:1fr 1fr;gap:8px}.opinion .btn{padding:12px}.count{display:block;font-size:12px;color:#777;margin-top:3px}
+.post{border-top:1px solid #eee;padding:12px 0}.post:first-child{border-top:0}.context{font-size:12px;color:#777;margin-bottom:4px}.body{white-space:pre-wrap}.score{font-size:12px;color:#777}
+.empty{padding:20px;text-align:center;color:#777}
+dialog{border:0;border-radius:8px;padding:18px;max-width:420px;width:calc(100% - 24px);box-shadow:0 12px 40px #0003}dialog::backdrop{background:#0006}.field{margin:10px 0}.field input{width:100%;padding:9px;border:1px solid #bbb;border-radius:5px}
+footer{max-width:900px;margin:22px auto 0;padding:15px 14px 34px;color:#888;font-size:11px}
+</style>
+</head>
+<body>
+<header><div class="nav"><a class="brand" href="index.html">裁判ウォッチ</a><div class="spacer"></div><a class="btn" id="accountLink" href="account.html" style="display:none">アカウント</a><button class="btn" id="authBtn">ログイン</button></div></header>
+<main>
+<section class="panel" id="profilePanel"><div class="empty">ユーザー情報を読み込み中...</div></section>
+<section class="panel" id="opinionPanel" style="display:none">
+<h2>みんなの評価</h2>
+<div class="opinion"><button class="btn" id="goodBtn">GOOD<span class="count" id="goodCount">0票</span></button><button class="btn" id="badBtn">BAD<span class="count" id="badCount">0票</span></button></div>
+<p class="small" id="opinionNote">ログインすると投票できます。1人1票で変更できます。</p>
+<p class="small">GOOD/BADは利用者の主観的な評価です。投稿内容の正確性・信用性・人格等を運営が認定するものではありません。</p>
+</section>
+<section class="panel"><h2>過去の投稿</h2><div id="posts"><div class="empty">読み込み中...</div></div></section>
+</main>
+<footer><a href="community-guidelines.html">投稿ルール</a> · <a href="privacy.html">プライバシー</a> · <a href="disclaimer.html">免責</a></footer>
+
+<dialog id="authDialog">
+<h2>ログイン</h2>
+<div class="field"><label>メールアドレス</label><input id="email" type="email"></div>
+<div class="field"><label>パスワード</label><input id="password" type="password" minlength="8"></div>
+<button class="btn primary" id="loginBtn">ログイン</button> <button class="btn" id="authClose">閉じる</button>
+<p class="small" id="authStatus"></p><p class="small">新規登録は<a href="index.html">トップページ</a>から行えます。</p>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="ad-loader.js"></script>
+<script>
+const sb=window.supabase.createClient("https://czhssdmwilnbrexqmtqg.supabase.co","sb_publishable_HhXl8I3L4z-UF168b6wSiQ_WrQXa1Uc");
+window.COURTWATCH_ADS?.init(sb);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+let user=null,profile=null,myProfile=null;
+const publicId=new URLSearchParams(location.search).get("id");
+const authDialog=document.getElementById("authDialog");
+
+async function refreshUser(){
+  const {data}=await sb.auth.getUser();user=data.user||null;
+  document.getElementById("authBtn").textContent=user?"ログアウト":"ログイン";
+  document.getElementById("accountLink").style.display=user?"inline-block":"none";
+  myProfile=null;
+  if(user){
+    const r=await sb.rpc("get_my_profile");
+    myProfile=(r.data||[])[0]||null;
+  }
+}
+function needLogin(){authDialog.showModal()}
+document.getElementById("authBtn").onclick=async()=>{if(user){await sb.auth.signOut();await refreshUser();await loadOpinion()}else needLogin()};
+document.getElementById("authClose").onclick=()=>authDialog.close();
+document.getElementById("loginBtn").onclick=async()=>{
+  const email=document.getElementById("email").value.trim(),password=document.getElementById("password").value;
+  const st=document.getElementById("authStatus");st.textContent="確認中...";
+  const {error}=await sb.auth.signInWithPassword({email,password});
+  if(error){st.textContent="ログインできませんでした。";return}
+  st.textContent="";authDialog.close();await refreshUser();await loadOpinion();
+};
+
+async function loadProfile(){
+  if(!publicId){document.getElementById("profilePanel").innerHTML='<div class="empty">ユーザーが指定されていません。</div>';return false}
+  const {data,error}=await sb.rpc("get_public_user_profile",{p_public_id:publicId});
+  profile=(data||[])[0]||null;
+  if(error||!profile){document.getElementById("profilePanel").innerHTML='<div class="empty">ユーザーが見つかりません。</div>';return false}
+  document.title=profile.display_name+" | 裁判ウォッチ";
+  document.getElementById("profilePanel").innerHTML=
+    '<div class="user-head"><div class="avatar">'+esc((profile.display_name||"?").slice(0,1))+'</div><div><div class="meta">裁判ウォッチ ユーザー</div><h1 class="title">'+esc(profile.display_name)+'</h1><div class="small">参加 '+esc(new Date(profile.joined_at).toLocaleDateString("ja-JP"))+' · 公開投稿 '+Number(profile.visible_post_count||0)+'件</div></div></div>';
+  document.getElementById("opinionPanel").style.display="block";
+  return true;
+}
+async function loadOpinion(){
+  if(!publicId||!profile)return;
+  const {data,error}=await sb.rpc("user_opinion_poll",{p_public_id:publicId});
+  if(error){console.error(error);return}
+  const r=(data||[])[0]||{};
+  document.getElementById("goodCount").textContent=Number(r.good_count||0)+"票";
+  document.getElementById("badCount").textContent=Number(r.bad_count||0)+"票";
+  document.getElementById("goodBtn").classList.toggle("selected",r.my_vote==="good");
+  document.getElementById("badBtn").classList.toggle("selected",r.my_vote==="bad");
+  const mine=myProfile&&myProfile.public_id===publicId;
+  document.getElementById("goodBtn").disabled=!!mine;
+  document.getElementById("badBtn").disabled=!!mine;
+  document.getElementById("opinionNote").textContent=mine?"自分自身には投票できません。":user?(r.my_vote?"あなたは投票済みです。選び直せます。":"1人1票。あとから変更できます。"):"ログインすると投票できます。1人1票で変更できます。";
+}
+async function vote(choice){
+  if(!user)return needLogin();
+  const {error}=await sb.rpc("cast_user_opinion_vote",{p_public_id:publicId,p_choice:choice});
+  if(error){
+    if((error.message||"").includes("self_vote_not_allowed"))alert("自分自身には投票できません。");
+    else alert("投票できませんでした。");
+    console.error(error);return;
+  }
+  await loadOpinion();
+}
+document.getElementById("goodBtn").onclick=()=>vote("good");
+document.getElementById("badBtn").onclick=()=>vote("bad");
+
+async function loadPosts(){
+  const el=document.getElementById("posts");
+  const {data,error}=await sb.rpc("get_public_user_posts",{p_public_id:publicId});
+  if(error){console.error(error);el.innerHTML='<div class="empty">投稿を読み込めませんでした。</div>';return}
+  if(!data?.length){el.innerHTML='<div class="empty">公開中の投稿はありません。</div>';return}
+  el.innerHTML=data.map(p=>{
+    let label="投稿先",href="";
+    if(p.case_id){label=p.case_title||"事件";href=p.case_slug?"case.html?slug="+encodeURIComponent(p.case_slug):"case.html?id="+encodeURIComponent(p.case_id)}
+    else if(p.person_id){label="人物："+(p.person_name||"");href="person.html?id="+encodeURIComponent(p.person_id)}
+    else if(p.mention_id){label="判決文記載人物："+(p.mention_name||"");href="person.html?mention="+encodeURIComponent(p.mention_id)}
+    const context=href?'<a href="'+href+'">'+esc(label)+'</a>':esc(label);
+    return '<div class="post"><div class="context">'+context+' · '+esc(new Date(p.created_at).toLocaleString("ja-JP"))+'</div><div class="body">'+esc(p.body)+'</div><div class="score">投稿評価 '+Number(p.score||0)+'</div></div>';
+  }).join("");
+}
+
+sb.auth.onAuthStateChange(async()=>{await refreshUser();if(profile)await loadOpinion();setTimeout(()=>window.COURTWATCH_ADS?.reloadIfEligibilityChanged(sb),0)});
+(async()=>{await refreshUser();if(await loadProfile()){await Promise.all([loadOpinion(),loadPosts()])}})();
+</script>
+</body>
+</html>
