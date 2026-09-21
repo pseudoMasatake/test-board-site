@@ -126,3 +126,5 @@ fs.writeFileSync("sitemap.xml",'<?xml version="1.0" encoding="UTF-8"?>\n<sitemap
 console.log("Generated",cases.length,"case pages and",people.length,"person pages");
 
 // refresh-trigger: 2026-09-21-new-people
+
+// profile-refresh-trigger: 2026-09-22-accused-enrichment
