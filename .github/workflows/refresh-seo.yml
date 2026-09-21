@@ -1,5 +1,11 @@
-name: Refresh SEO sitemap
+name: Refresh SEO
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/refresh-seo.yml"
+      - "scripts/submit-indexnow.mjs"
+      - "21d6e780c8c007515162b511ae98a991668a603d437c5119.txt"
   schedule:
     - cron: "30 8 * * *"
   workflow_dispatch:
@@ -15,13 +21,22 @@ jobs:
           node-version: "24"
       - name: Rebuild sitemap
         run: node scripts/refresh-sitemap.mjs
-      - name: Commit changes
+      - name: Detect sitemap changes
+        id: changes
         shell: bash
         run: |
           if git diff --quiet -- sitemap.xml; then
-            echo "No sitemap changes"
-            exit 0
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
+      - name: Notify IndexNow
+        if: github.event_name == 'push' || steps.changes.outputs.changed == 'true'
+        run: node scripts/submit-indexnow.mjs
+      - name: Commit sitemap changes
+        if: steps.changes.outputs.changed == 'true'
+        shell: bash
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add sitemap.xml
