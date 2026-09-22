@@ -694,6 +694,7 @@ window.COURTWATCH_ADS?.init(sb);
     const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
     const authorHtml=p=>p.author_public_id?'<a href="user.html?id='+encodeURIComponent(p.author_public_id)+'">'+esc(p.display_name)+'</a>':esc(p.display_name);
     const fmt=d=>d?new Date(d+"T00:00:00").toLocaleDateString("ja-JP"):"";
+    const claimPendingText=c=>c?.raw_metadata?.fulltext_pdf_url?"判決全文の主張部分を解析中です。":(/courts\.go\.jp\/hanrei\//.test(c?.source_url||"")?"判決全文を取得・解析中です。":"主張を確認できる原資料が未登録です。");
     const needLogin=()=>{authStatus("投稿・投票・通報にはログインが必要です。");authDialog.showModal();};
 
     function updateAuthButton(){
@@ -928,9 +929,9 @@ window.COURTWATCH_ADS?.init(sb);
         :["原告・申立人側の主張","被告・相手方側の主張"];
       document.getElementById("modalProsLabel").textContent=defaultSideLabels[0];
       document.getElementById("modalDefLabel").textContent=defaultSideLabels[1];
-      document.getElementById("modalPros").textContent=currentCase.prosecution_claim||"公開資料から未取得";
-      document.getElementById("modalDef").textContent=currentCase.defense_claim||"公開資料から未取得";
-      document.getElementById("modalJudge").textContent=currentCase.court_view||"公開資料から未取得";
+      document.getElementById("modalPros").textContent=currentCase.prosecution_claim||claimPendingText(currentCase);
+      document.getElementById("modalDef").textContent=currentCase.defense_claim||claimPendingText(currentCase);
+      document.getElementById("modalJudge").textContent=currentCase.court_view||claimPendingText(currentCase);
       loadCaseSummary(currentCase.id).catch(e=>console.error("loadCaseSummary failed",e));
       const isCriminal=currentCase.category==="刑事";
       const judgmentIsSentence=!!(currentCase.judgment_result&&/(懲役|禁錮|拘禁刑|罰金|死刑|無罪|執行猶予|科料|刑に処|刑を)/.test(currentCase.judgment_result));
