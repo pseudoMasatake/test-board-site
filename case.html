@@ -172,6 +172,7 @@ async function loadCase(){
   const {data:caseSummary,error:caseSummaryError}=await sb.from("case_summaries")
     .select("side_a_summary,side_b_summary,court_summary,side_a_label,side_b_label,source_url")
     .eq("case_id",data.id)
+    .eq("status","published")
     .maybeSingle();
   if(caseSummaryError)console.error(caseSummaryError);
   document.title=data.title+" | 裁判ウォッチ";
@@ -183,9 +184,9 @@ async function loadCase(){
     '<h1 class="title">'+esc(data.title)+'</h1>'+
     '<p class="summary">'+esc(data.summary||"")+'</p>'+
     '<div class="grid">'+
-      '<div class="box"><h3>'+esc(caseSummary?.side_a_label||(isCriminal?"検察側の主張":"原告・申立人側の主張"))+' <small>要約</small></h3><div>'+esc(caseSummary?.side_a_summary||data.prosecution_claim||claimPendingText(data))+'</div></div>'+
-      '<div class="box"><h3>'+esc(caseSummary?.side_b_label||(isCriminal?"弁護側の主張":"被告・相手方側の主張"))+' <small>要約</small></h3><div>'+esc(caseSummary?.side_b_summary||data.defense_claim||claimPendingText(data))+'</div></div>'+
-      '<div class="box"><h3>裁判所の判断 <small>要約</small></h3><div>'+esc(caseSummary?.court_summary||data.court_view||claimPendingText(data))+'</div></div>'+
+      '<div class="box"><h3>'+esc(caseSummary?.side_a_label||(isCriminal?"検察側の主張":"原告・申立人側の主張"))+' <small>要約</small></h3><div>'+esc(caseSummary?.side_a_summary||claimPendingText(data))+'</div></div>'+
+      '<div class="box"><h3>'+esc(caseSummary?.side_b_label||(isCriminal?"弁護側の主張":"被告・相手方側の主張"))+' <small>要約</small></h3><div>'+esc(caseSummary?.side_b_summary||claimPendingText(data))+'</div></div>'+
+      '<div class="box"><h3>裁判所の判断 <small>要約</small></h3><div>'+esc(caseSummary?.court_summary||claimPendingText(data))+'</div></div>'+
       '<div class="box"><h3>更新</h3><div>'+esc(data.updated_at?new Date(data.updated_at).toLocaleString("ja-JP"):"")+'</div></div>'+
     '</div>'+
     (isCriminal?'<div class="sentence-box" id="sentenceBox">': '<div id="sentenceBox" style="display:none">')+
