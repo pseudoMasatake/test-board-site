@@ -200,6 +200,7 @@ const allMap=[...caseMap,...peopleMap,...topicMap,...staticUrls];
 const seen=new Set();
 const rootMap=allMap.filter(r=>r&&r.loc&&!seen.has(r.loc)&&seen.add(r.loc));
 fs.writeFileSync("sitemap.xml",urlset(rootMap));
+fs.writeFileSync("sitemap.txt",rootMap.map(r=>r.loc).join("\n")+"\n");
 console.log("Generated",cases.length,"case pages,",people.length,"person pages and",topicRows.length,"topic pages");
 
 // refresh-trigger: 2026-09-21-new-people
