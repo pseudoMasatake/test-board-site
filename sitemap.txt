@@ -1688,6 +1688,7 @@ https://saibanwatch.github.io/civil.html
 https://saibanwatch.github.io/administrative.html
 https://saibanwatch.github.io/acquittals.html
 https://saibanwatch.github.io/sentencing.html
+https://saibanwatch.github.io/latest.html
 https://saibanwatch.github.io/terms.html
 https://saibanwatch.github.io/community-guidelines.html
 https://saibanwatch.github.io/privacy.html
