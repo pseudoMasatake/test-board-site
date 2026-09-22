@@ -27,7 +27,7 @@ jobs:
         id: changes
         shell: bash
         run: |
-          if git diff --quiet -- cases people topics people.html topics.html criminal.html civil.html administrative.html acquittals.html sentencing.html sitemap.xml sitemaps; then
+          if git diff --quiet -- cases people topics people.html topics.html criminal.html civil.html administrative.html acquittals.html sentencing.html sitemap.xml sitemap.txt sitemaps; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
