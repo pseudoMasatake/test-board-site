@@ -156,6 +156,7 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;"
 const authorHtml=p=>p.author_public_id?'<a href="user.html?id='+encodeURIComponent(p.author_public_id)+'">'+esc(p.display_name)+'</a>':esc(p.display_name);
 const fmt=d=>d?new Date(d+"T00:00:00").toLocaleDateString("ja-JP"):"";
 const roleLabel=r=>({judge:"裁判官",prosecutor:"検察官",lawyer:"弁護士",accused:"被告人",plaintiff:"原告",defendant:"被告",other:"その他"}[r]||r||"");
+const claimPendingText=c=>c?.raw_metadata?.fulltext_pdf_url?"判決全文の主張部分を解析中です。":(/courts\.go\.jp\/hanrei\//.test(c?.source_url||"")?"判決全文を取得・解析中です。":"主張を確認できる原資料が未登録です。");
 let user=null,currentCase=null,currentPerson=null,authMode="login";
 const authDialog=document.getElementById("authDialog");
 const personDialog=document.getElementById("personDialog");
@@ -182,9 +183,9 @@ async function loadCase(){
     '<h1 class="title">'+esc(data.title)+'</h1>'+
     '<p class="summary">'+esc(data.summary||"")+'</p>'+
     '<div class="grid">'+
-      '<div class="box"><h3>'+esc(caseSummary?.side_a_label||(isCriminal?"検察側の主張":"原告・申立人側の主張"))+' <small>要約</small></h3><div>'+esc(caseSummary?.side_a_summary||data.prosecution_claim||"公開資料から未取得")+'</div></div>'+
-      '<div class="box"><h3>'+esc(caseSummary?.side_b_label||(isCriminal?"弁護側の主張":"被告・相手方側の主張"))+' <small>要約</small></h3><div>'+esc(caseSummary?.side_b_summary||data.defense_claim||"公開資料から未取得")+'</div></div>'+
-      '<div class="box"><h3>裁判所の判断 <small>要約</small></h3><div>'+esc(caseSummary?.court_summary||data.court_view||"公開資料から未取得")+'</div></div>'+
+      '<div class="box"><h3>'+esc(caseSummary?.side_a_label||(isCriminal?"検察側の主張":"原告・申立人側の主張"))+' <small>要約</small></h3><div>'+esc(caseSummary?.side_a_summary||data.prosecution_claim||claimPendingText(data))+'</div></div>'+
+      '<div class="box"><h3>'+esc(caseSummary?.side_b_label||(isCriminal?"弁護側の主張":"被告・相手方側の主張"))+' <small>要約</small></h3><div>'+esc(caseSummary?.side_b_summary||data.defense_claim||claimPendingText(data))+'</div></div>'+
+      '<div class="box"><h3>裁判所の判断 <small>要約</small></h3><div>'+esc(caseSummary?.court_summary||data.court_view||claimPendingText(data))+'</div></div>'+
       '<div class="box"><h3>更新</h3><div>'+esc(data.updated_at?new Date(data.updated_at).toLocaleString("ja-JP"):"")+'</div></div>'+
     '</div>'+
     (isCriminal?'<div class="sentence-box" id="sentenceBox">': '<div id="sentenceBox" style="display:none">')+
