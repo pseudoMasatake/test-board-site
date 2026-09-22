@@ -148,7 +148,7 @@ async function loadPerson(){
       return;
     }
     if(data.person_id){
-      location.replace("index.html?person="+encodeURIComponent(data.person_id));
+      location.replace("person.html?id="+encodeURIComponent(data.person_id));
       return;
     }
 
