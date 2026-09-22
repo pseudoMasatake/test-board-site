@@ -87,6 +87,34 @@ const topicDefs=[
   {slug:"tax",name:"税務・課税の裁判例",desc:"所得税、法人税、課税、租税、税務に関する掲載裁判例を確認できます。",re:/所得税|法人税|課税|租税|税務/}
 ].map(t=>({...t,match:c=>t.re.test(caseText(c))}));
 
+const topicIdsByCase=new Map(cases.map(c=>[c.id,topicDefs.filter(t=>t.match(c)).map(t=>t.slug)]));
+function relatedCasesFor(c,limit=6){
+  const ids=new Set(topicIdsByCase.get(c.id)||[]);
+  return cases
+    .filter(q=>q.id!==c.id)
+    .map(q=>{
+      let score=0;
+      for(const id of topicIdsByCase.get(q.id)||[]) if(ids.has(id)) score+=4;
+      if(c.court&&q.court===c.court) score+=2;
+      if(c.category&&q.category===c.category) score+=1;
+      return {q,score};
+    })
+    .filter(x=>x.score>=2)
+    .sort((a,b)=>b.score-a.score||String(b.q.event_date||"").localeCompare(String(a.q.event_date||"")))
+    .slice(0,limit)
+    .map(x=>x.q);
+}
+function relatedCasesSection(c){
+  const rows=relatedCasesFor(c,6);
+  if(!rows.length) return "";
+  return '<section class="panel"><h2>関連する裁判</h2><ul class="list">'+rows.map(q=>'<li><a href="../cases/'+encodeURIComponent(q.slug)+'.html"><strong>'+h(q.title)+'</strong></a><div class="meta">'+h(q.court||"")+(q.event_date?" · "+h(jpdate(q.event_date)):"")+(q.judgment_result?" · "+h(txt(q.judgment_result,140)):"")+'</div></li>').join("")+'</ul></section>';
+}
+function shareBox(url,title){
+  const x="https://twitter.com/intent/tweet?url="+encodeURIComponent(url)+"&text="+encodeURIComponent(title+" | 裁判ウォッチ");
+  const line="https://social-plugins.line.me/lineit/share?url="+encodeURIComponent(url);
+  return '<section class="panel"><h2>このページを共有</h2><p><a class="cta" href="'+h(x)+'" target="_blank" rel="noopener noreferrer">Xで共有</a><a class="subcta" href="'+h(line)+'" target="_blank" rel="noopener noreferrer">LINEで共有</a></p></section>';
+}
+
 function casePage(c){
   const url="https://saibanwatch.github.io/cases/"+encodeURIComponent(c.slug)+".html";
   const sum=txt(c.summary,1800), num=txt(c.raw_metadata?.case_number,120);
@@ -106,7 +134,7 @@ function casePage(c){
   const claims='<section class="panel"><h2>主張と裁判所の判断</h2><div class="grid">' + '<div class="info"><h3>'+h(ai.side_a_label||(c.category==="刑事"?"検察側の主張":"原告・申立人側の主張"))+'</h3><p>'+h(pros||pendingClaims)+'</p></div>' + '<div class="info"><h3>'+h(ai.side_b_label||(c.category==="刑事"?"弁護側の主張":"被告・相手方側の主張"))+'</h3><p>'+h(def||pendingClaims)+'</p></div>' + '<div class="info"><h3>裁判所の判断</h3><p>'+h(courtv||pendingClaims)+'</p></div></div></section>';
   const persons=ppl.length?'<section class="panel"><h2>この事件の関係者</h2><ul class="list">'+ppl.map(p=>'<li><a href="../people/'+encodeURIComponent(p.id)+'.html"><strong>'+h(p.display_name)+'</strong></a><div class="meta">'+h(p.role_label||roles[p.role]||"関係者")+(p.organization?" · "+h(p.organization):"")+'</div></li>').join("")+'</ul></section>':"";
   const sources=allsrc.length?'<section class="panel"><h2>出典・原資料</h2><ul class="list">'+allsrc.map(s=>'<li><a href="'+h(safe(s.url))+'" target="_blank" rel="noopener noreferrer">'+h(s.title||s.publisher||"資料を開く")+'</a>'+(s.publisher?'<div class="meta">'+h(s.publisher)+'</div>':"")+'</li>').join("")+'</ul><p class="note">要約は原資料の代替ではありません。重要な内容はリンク先の原資料で確認してください。</p></section>':"";
-  return '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+h(seoTitle)+'</title><meta name="description" content="'+h(desc)+'"><meta name="robots" content="index,follow"><link rel="canonical" href="'+h(url)+'"><link rel="alternate" type="application/rss+xml" title="裁判ウォッチ 新着裁判" href="../feed.xml"><link rel="icon" href="../favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../seo.css"><script src="../analytics.js" defer></script><meta property="og:type" content="article"><meta property="og:site_name" content="裁判ウォッチ"><meta property="og:title" content="'+h(seoTitle)+'"><meta property="og:description" content="'+h(desc)+'"><meta property="og:url" content="'+h(url)+'"><meta name="twitter:card" content="summary"><script type="application/ld+json">'+json+'</script></head><body><header><div class="nav"><a class="brand" href="../index.html">裁判ウォッチ</a><nav class="navlinks"><a href="../criminal.html">刑事</a><a href="../civil.html">民事</a><a href="../administrative.html">行政</a><a href="../people.html">人物</a></nav></div></header><main><div class="breadcrumbs"><a href="../index.html">トップ</a> › <a href="../'+cf+'">'+h(c.category||"裁判")+'</a> › '+h(c.title)+'</div><section class="panel"><div class="meta"><span class="badge">'+h(c.category||"未分類")+'</span>'+(c.status?'<span class="badge">'+h(c.status)+'</span>':"")+(c.court?'<span>'+h(c.court)+'</span>':"")+(c.event_date?'<span>'+h(c.event_date)+'</span>':"")+(num?'<span>'+h(num)+'</span>':"")+'</div><h1>'+h(c.title)+'</h1>'+(sum?'<p class="summary">'+h(sum)+'</p>':"")+'</section>'+result+claims+persons+sources+'<section class="panel"><h2>みんなの意見</h2><p>この事件の求刑・判決への投票や投稿を確認できます。</p><a class="cta" href="../case.html?slug='+encodeURIComponent(c.slug)+'#opinions">投票・みんなの意見を見る</a><a class="subcta" href="../case.html?slug='+encodeURIComponent(c.slug)+'#posts">投稿を見る・書く</a></section><section class="panel"><h2>関連する裁判を探す</h2><p><a href="../'+cf+'">'+h(c.category||"裁判")+'の裁判一覧</a>'+(jud&&/無罪/.test(jud)?' · <a href="../acquittals.html">無罪判決の一覧</a>':"")+(req&&jud?' · <a href="../sentencing.html">求刑と判決の比較</a>':"")+(topicLinks?' · '+topicLinks:"")+'</p></section></main><footer>裁判ウォッチ · 公開資料を整理し、裁判の内容とみんなの意見を確認できるサイトです。</footer></body></html>';
+  return '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+h(seoTitle)+'</title><meta name="description" content="'+h(desc)+'"><meta name="robots" content="index,follow"><link rel="canonical" href="'+h(url)+'"><link rel="alternate" type="application/rss+xml" title="裁判ウォッチ 新着裁判" href="../feed.xml"><link rel="icon" href="../favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="../seo.css"><script src="../analytics.js" defer></script><meta property="og:type" content="article"><meta property="og:site_name" content="裁判ウォッチ"><meta property="og:title" content="'+h(seoTitle)+'"><meta property="og:description" content="'+h(desc)+'"><meta property="og:url" content="'+h(url)+'"><meta name="twitter:card" content="summary"><script type="application/ld+json">'+json+'</script></head><body><header><div class="nav"><a class="brand" href="../index.html">裁判ウォッチ</a><nav class="navlinks"><a href="../criminal.html">刑事</a><a href="../civil.html">民事</a><a href="../administrative.html">行政</a><a href="../people.html">人物</a></nav></div></header><main><div class="breadcrumbs"><a href="../index.html">トップ</a> › <a href="../'+cf+'">'+h(c.category||"裁判")+'</a> › '+h(c.title)+'</div><section class="panel"><div class="meta"><span class="badge">'+h(c.category||"未分類")+'</span>'+(c.status?'<span class="badge">'+h(c.status)+'</span>':"")+(c.court?'<span>'+h(c.court)+'</span>':"")+(c.event_date?'<span>'+h(c.event_date)+'</span>':"")+(num?'<span>'+h(num)+'</span>':"")+'</div><h1>'+h(c.title)+'</h1>'+(sum?'<p class="summary">'+h(sum)+'</p>':"")+'</section>'+result+claims+persons+sources+relatedCasesSection(c)+'<section class="panel"><h2>みんなの意見</h2><p>この事件の求刑・判決への投票や投稿を確認できます。</p><a class="cta" href="../case.html?slug='+encodeURIComponent(c.slug)+'#opinions">投票・みんなの意見を見る</a><a class="subcta" href="../case.html?slug='+encodeURIComponent(c.slug)+'#posts">投稿を見る・書く</a></section><section class="panel"><h2>関連する裁判を探す</h2><p><a href="../'+cf+'">'+h(c.category||"裁判")+'の裁判一覧</a>'+(jud&&/無罪/.test(jud)?' · <a href="../acquittals.html">無罪判決の一覧</a>':"")+(req&&jud?' · <a href="../sentencing.html">求刑と判決の比較</a>':"")+(topicLinks?' · '+topicLinks:"")+'</p></section>'+shareBox(url,c.title)+'</main><footer>裁判ウォッチ · 公開資料を整理し、裁判の内容とみんなの意見を確認できるサイトです。</footer></body></html>';
 }
 
 
