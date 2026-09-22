@@ -60,9 +60,11 @@ if(!css) throw new Error("seo.css missing");
 fs.rmSync("cases",{recursive:true,force:true});
 fs.rmSync("people",{recursive:true,force:true});
 fs.rmSync("topics",{recursive:true,force:true});
+fs.rmSync("case-archive",{recursive:true,force:true});
 fs.mkdirSync("cases",{recursive:true});
 fs.mkdirSync("people",{recursive:true});
 fs.mkdirSync("topics",{recursive:true});
+fs.mkdirSync("case-archive",{recursive:true});
 fs.mkdirSync("sitemaps",{recursive:true});
 
 function catFile(c){return c==="刑事"?"criminal.html":c==="民事"?"civil.html":c==="行政"?"administrative.html":"index.html"}
@@ -177,6 +179,25 @@ fs.writeFileSync("administrative.html",archive("administrative.html","行政裁�
 fs.writeFileSync("acquittals.html",archive("acquittals.html","無罪判決の裁判例一覧","判決結果に無罪が含まれる掲載裁判例を、裁判所・日付・概要とともに確認できます。",cases.filter(c=>/無罪/.test(c.judgment_result||"")).sort(byDate)));
 fs.writeFileSync("sentencing.html",archive("sentencing.html","求刑と判決の比較一覧","刑事事件のうち求刑と判決の両方を掲載している事件を一覧で確認できます。",cases.filter(c=>c.category==="刑事"&&(c.sentencing_request||c.sentence_request)&&c.judgment_result).sort(byDate)));
 
+const allCasesSorted=[...cases].sort(byDate);
+const allCasesPerPage=200;
+const allCasesTotalPages=Math.max(1,Math.ceil(allCasesSorted.length/allCasesPerPage));
+function allCasesPage(pageNo){
+  const nested=pageNo>1;
+  const prefix=nested?"../":"";
+  const rows=allCasesSorted.slice((pageNo-1)*allCasesPerPage,pageNo*allCasesPerPage);
+  const items=rows.map(c=>'<li><a href="'+prefix+'cases/'+encodeURIComponent(c.slug)+'.html"><strong>'+h(c.title)+'</strong></a><div class="meta">'+h(c.category||"")+(c.court?" · "+h(c.court):"")+(c.event_date?" · "+h(c.event_date):"")+(c.judgment_result?" · "+h(txt(c.judgment_result,160)):"")+'</div>'+(c.summary?'<div class="note" style="margin-top:4px">'+h(txt(c.summary,180))+'</div>':"")+'</li>').join("");
+  const pageLinks=Array.from({length:allCasesTotalPages},(_,i)=>i+1).map(n=>{
+    const href=n===1?(nested?"../all-cases.html":"all-cases.html"):(nested?"page-"+n+".html":"case-archive/page-"+n+".html");
+    return n===pageNo?'<strong>'+n+'</strong>':'<a href="'+href+'">'+n+'</a>';
+  }).join(" · ");
+  const url=pageNo===1?"https://saibanwatch.github.io/all-cases.html":"https://saibanwatch.github.io/case-archive/page-"+pageNo+".html";
+  const title="裁判例・判決 全件一覧"+(pageNo>1?" "+pageNo+"ページ目":"");
+  return '<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+h(title)+' | 裁判ウォッチ</title><meta name="description" content="裁判ウォッチ掲載の裁判例・判決を全件一覧から探せます。刑事・民事・行政の事件概要、裁判所、判決日などを確認できます。"><meta name="robots" content="index,follow"><link rel="canonical" href="'+url+'"><link rel="icon" href="'+prefix+'favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="'+prefix+'seo.css"><script src="'+prefix+'analytics.js" defer></script></head><body><header><div class="nav"><a class="brand" href="'+prefix+'index.html">裁判ウォッチ</a><nav class="navlinks"><a href="'+prefix+'criminal.html">刑事</a><a href="'+prefix+'civil.html">民事</a><a href="'+prefix+'administrative.html">行政</a><a href="'+prefix+'topics.html">テーマ</a><a href="'+prefix+'people.html">人物</a></nav></div></header><main><div class="breadcrumbs"><a href="'+prefix+'index.html">トップ</a> › 裁判例・判決 全件一覧</div><section class="panel"><h1>'+h(title)+'</h1><p class="summary">掲載中の裁判例を静的HTMLの一覧から辿れます。検索エンジンからも各事件ページを発見しやすい構成です。</p><div class="meta">全 '+allCasesSorted.length+'件 · '+pageNo+' / '+allCasesTotalPages+'ページ</div><p>'+pageLinks+'</p></section><section class="panel"><ul class="list">'+items+'</ul></section><section class="panel"><p>'+pageLinks+'</p></section></main><footer>公開資料をもとに整理した裁判例一覧です。</footer></body></html>';
+}
+fs.writeFileSync("all-cases.html",allCasesPage(1));
+for(let pageNo=2;pageNo<=allCasesTotalPages;pageNo++) fs.writeFileSync("case-archive/page-"+pageNo+".html",allCasesPage(pageNo));
+
 function topicPage(t,rows){
   const items=rows.slice(0,300).map(c=>'<li><a href="../cases/'+encodeURIComponent(c.slug)+'.html"><strong>'+h(c.title)+'</strong></a><div class="meta">'+h(c.court||"")+(c.event_date?" · "+h(c.event_date):"")+(c.judgment_result?" · "+h(txt(c.judgment_result,180)):"")+'</div>'+(c.summary?'<div class="note" style="margin-top:4px">'+h(txt(c.summary,190))+'</div>':"")+'</li>').join("");
   const url="https://saibanwatch.github.io/topics/"+t.slug+".html";
@@ -192,12 +213,13 @@ function urlset(rows){return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xm
 const caseMap=cases.map(c=>({loc:"https://saibanwatch.github.io/cases/"+encodeURIComponent(c.slug)+".html",lastmod:String(c.updated_at||"").slice(0,10)}));
 const peopleMap=[{loc:"https://saibanwatch.github.io/people.html"},...people.map(p=>({loc:"https://saibanwatch.github.io/people/"+encodeURIComponent(p.id)+".html",lastmod:String(p.created_at||"").slice(0,10)}))];
 const topicMap=[{loc:"https://saibanwatch.github.io/topics.html"},...topicRows.map(t=>({loc:"https://saibanwatch.github.io/topics/"+t.slug+".html"}))];
+const archiveUrls=[{loc:"https://saibanwatch.github.io/all-cases.html"},...Array.from({length:Math.max(0,allCasesTotalPages-1)},(_,i)=>({loc:"https://saibanwatch.github.io/case-archive/page-"+(i+2)+".html"}))];
 const staticUrls=["https://saibanwatch.github.io/","https://saibanwatch.github.io/criminal.html","https://saibanwatch.github.io/civil.html","https://saibanwatch.github.io/administrative.html","https://saibanwatch.github.io/acquittals.html","https://saibanwatch.github.io/sentencing.html","https://saibanwatch.github.io/topics.html","https://saibanwatch.github.io/terms.html","https://saibanwatch.github.io/community-guidelines.html","https://saibanwatch.github.io/privacy.html","https://saibanwatch.github.io/disclaimer.html","https://saibanwatch.github.io/contact.html","https://saibanwatch.github.io/advertising.html"].map(loc=>({loc}));
 fs.writeFileSync("sitemaps/cases.xml",urlset(caseMap));
 fs.writeFileSync("sitemaps/people.xml",urlset(peopleMap));
 fs.writeFileSync("sitemaps/topics.xml",urlset(topicMap));
 fs.writeFileSync("sitemaps/static.xml",urlset(staticUrls));
-const allMap=[...caseMap,...peopleMap,...topicMap,...staticUrls];
+const allMap=[...caseMap,...peopleMap,...topicMap,...archiveUrls,...staticUrls];
 const seen=new Set();
 const rootMap=allMap.filter(r=>r&&r.loc&&!seen.has(r.loc)&&seen.add(r.loc));
 fs.writeFileSync("sitemap.xml",urlset(rootMap));
