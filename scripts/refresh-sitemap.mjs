@@ -26,7 +26,7 @@ const [
   fetchAll("cases","select=id,slug,title,court,category,status,summary,prosecution_claim,defense_claim,court_view,source_url,source_label,source_kind,event_date,updated_at,raw_metadata,sentence_request,sentencing_request,judgment_result&is_demo=eq.false&slug=not.is.null&order=slug.asc"),
   fetchAll("people","select=id,display_name,role,organization,bio,overview,background,birth_date,sex,birthplace,photo_url,profile_url,source_url,created_at&verification_status=eq.verified&order=display_name.asc"),
   fetchAll("case_people","select=case_id,person_id,role_label"),
-  fetchAll("case_summaries","select=case_id,side_a_summary,side_b_summary,court_summary,side_a_label,side_b_label"),
+  fetchAll("case_summaries","select=case_id,side_a_summary,side_b_summary,court_summary,side_a_label,side_b_label&status=eq.published"),
   fetchAll("case_sources","select=case_id,url,publisher,title,source_type,is_primary,published_at&order=is_primary.desc"),
   fetchAll("person_sources","select=person_id,url,publisher,title,source_type,is_primary,created_at&order=is_primary.desc")
 ]);
@@ -91,7 +91,7 @@ function casePage(c){
   const url="https://saibanwatch.github.io/cases/"+encodeURIComponent(c.slug)+".html";
   const sum=txt(c.summary,1800), num=txt(c.raw_metadata?.case_number,120);
   const req=txt(c.sentencing_request||c.sentence_request,1200), jud=txt(c.judgment_result,1800);
-  const ai=summaryByCase.get(c.id)||{}, pros=txt(ai.side_a_summary||c.prosecution_claim,2200), def=txt(ai.side_b_summary||c.defense_claim,2200), courtv=txt(ai.court_summary||c.court_view,2800);
+  const ai=summaryByCase.get(c.id)||{}, pros=txt(ai.side_a_summary,2200), def=txt(ai.side_b_summary,2200), courtv=txt(ai.court_summary,2800);
   const desc=txt(c.title+"。"+(c.court||"")+(c.event_date?"、"+c.event_date:"")+"。"+(jud?"判決: "+jud:sum),155);
   const ppl=(peopleByCase.get(c.id)||[]).slice(0,30), srcMain=safe(c.source_url);
   const allsrc=[...(srcMain?[{url:srcMain,title:c.source_label||"原資料",publisher:c.source_label||""}]:[]),...(sourcesByCase.get(c.id)||[]).filter(s=>safe(s.url)&&safe(s.url)!==srcMain)];
