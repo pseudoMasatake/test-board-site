@@ -2,13 +2,15 @@ import fs from "node:fs";
 const key="21d6e780c8c007515162b511ae98a991668a603d437c5119";
 const host="saibanwatch.github.io";
 const keyLocation="https://"+host+"/"+key+".txt";
-const files=["sitemaps/cases.xml","sitemaps/people.xml","sitemaps/static.xml"];
+const files=fs.existsSync("sitemap.xml")
+  ? ["sitemap.xml"]
+  : ["sitemaps/cases.xml","sitemaps/people.xml","sitemaps/topics.xml","sitemaps/static.xml"];
 const urls=[...new Set(files.flatMap(file=>{
   if(!fs.existsSync(file)) return [];
   const xml=fs.readFileSync(file,"utf8");
   return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m=>m[1].replace(/&amp;/g,"&"));
 }))];
-if(!urls.length) throw new Error("No page URLs found in split sitemaps");
+if(!urls.length) throw new Error("No page URLs found in sitemap");
 for(let i=0;i<urls.length;i+=10000){
   const batch=urls.slice(i,i+10000);
   const res=await fetch("https://api.indexnow.org/indexnow",{
