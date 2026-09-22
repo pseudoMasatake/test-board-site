@@ -235,4 +235,5 @@ console.log("Generated",cases.length,"case pages,",people.length,"person pages a
 
 
 
-// claim-refresh-trigger: 2026-09-22-editorial-batch-30
+
+// claim-refresh-trigger: 2026-09-22-editorial-batch-30-retry
