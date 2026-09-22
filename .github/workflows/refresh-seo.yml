@@ -41,7 +41,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add cases people topics people.html topics.html criminal.html civil.html administrative.html acquittals.html sentencing.html sitemap.xml sitemaps
+          git add cases people topics people.html topics.html criminal.html civil.html administrative.html acquittals.html sentencing.html sitemap.xml sitemap.txt sitemaps
           git commit -m "Refresh static search pages"
           git fetch origin main
           git rebase origin/main
