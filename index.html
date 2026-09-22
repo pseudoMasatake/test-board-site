@@ -883,6 +883,7 @@ window.COURTWATCH_ADS?.init(sb);
       const {data,error}=await sb.from("case_summaries")
         .select("side_a_summary,side_b_summary,court_summary,side_a_label,side_b_label,source_url")
         .eq("case_id",caseId)
+        .eq("status","published")
         .maybeSingle();
       if(error){console.error(error);return}
       if(!data)return;
@@ -930,9 +931,9 @@ window.COURTWATCH_ADS?.init(sb);
         :["原告・申立人側の主張","被告・相手方側の主張"];
       document.getElementById("modalProsLabel").textContent=defaultSideLabels[0];
       document.getElementById("modalDefLabel").textContent=defaultSideLabels[1];
-      document.getElementById("modalPros").textContent=currentCase.prosecution_claim||claimPendingText(currentCase);
-      document.getElementById("modalDef").textContent=currentCase.defense_claim||claimPendingText(currentCase);
-      document.getElementById("modalJudge").textContent=currentCase.court_view||claimPendingText(currentCase);
+      document.getElementById("modalPros").textContent=claimPendingText(currentCase);
+      document.getElementById("modalDef").textContent=claimPendingText(currentCase);
+      document.getElementById("modalJudge").textContent=claimPendingText(currentCase);
       loadCaseSummary(currentCase.id).catch(e=>console.error("loadCaseSummary failed",e));
       const isCriminal=currentCase.category==="刑事";
       const judgmentIsSentence=!!(currentCase.judgment_result&&/(懲役|禁錮|拘禁刑|罰金|死刑|無罪|執行猶予|科料|刑に処|刑を)/.test(currentCase.judgment_result));
