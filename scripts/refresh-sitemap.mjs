@@ -211,4 +211,5 @@ console.log("Generated",cases.length,"case pages,",people.length,"person pages a
 
 // profile-refresh-trigger: 2026-09-22-person-timeline-related
 
-// claim-refresh-trigger: 2026-09-22-claim-backfill
+
+// claim-refresh-trigger: 2026-09-22-claim-parser-v4
