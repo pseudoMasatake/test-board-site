@@ -128,4 +128,5 @@ console.log("Generated",cases.length,"case pages and",people.length,"person page
 
 // refresh-trigger: 2026-09-21-new-people
 
-// profile-refresh-trigger: 2026-09-22-accused-enrichment
+
+// profile-refresh-trigger: 2026-09-22-judges-lawyers-enrichment
