@@ -87,7 +87,16 @@ footer{max-width:900px;margin:22px auto 0;padding:15px 14px 34px;color:#888;font
     <p class="small" style="margin:5px 0 0">GOOD/BADは利用者の主観的な投票です。事実認定・信用性・法的評価を示すものではありません。</p>
   </section>
   <div class="ad-slot ad-responsive" id="adPersonInline" data-ad-slot="person-inline"></div>
-  <section class="panel"><h2>掲載事件</h2><div id="cases"><div class="empty">読み込み中...</div></div></section>
+  <section class="panel" id="personTimelinePanel">
+    <h2>経歴年表</h2>
+    <div id="personTimeline"><div class="empty">読み込み中...</div></div>
+  </section>
+  <section class="panel"><h2>主な掲載事件</h2><div id="cases"><div class="empty">読み込み中...</div></div></section>
+  <section class="panel" id="relatedPeoplePanel">
+    <h2>同じ掲載事件に登場する人物</h2>
+    <p class="small">同一の掲載事件に紐づく人物です。私的な関係や共犯関係などを意味するものではありません。</p>
+    <div id="relatedPeople"><div class="empty">読み込み中...</div></div>
+  </section>
   <section class="panel" id="personDiscussionPanel">
     <h2 id="discussionTitle">この人物についての投稿</h2>
     <p class="small" id="discussionScopeNote" style="display:none;margin-top:-4px"></p>
@@ -170,6 +179,8 @@ async function loadPerson(){
     document.getElementById("discussionScopeNote").style.display="block";
     document.getElementById("discussionScopeNote").textContent="この投稿欄は、この判決文中の人物記載にだけ紐づきます。本人同一性は未確認です。";
     document.getElementById("correctionBtn").style.display="none";
+    document.getElementById("personTimelinePanel").style.display="none";
+    document.getElementById("relatedPeoplePanel").style.display="none";
     await Promise.all([loadPosts(),loadPersonOpinion(),loadPersonTags()]);
     return;
   }
@@ -189,6 +200,8 @@ async function loadPerson(){
   document.getElementById("discussionScopeNote").style.display="none";
   document.getElementById("discussionScopeNote").textContent="";
   document.getElementById("correctionBtn").style.display="";
+  document.getElementById("personTimelinePanel").style.display="";
+  document.getElementById("relatedPeoplePanel").style.display="";
   document.title=data.display_name+" | 裁判ウォッチ";
   const meta=document.querySelector('meta[name="description"]');if(meta)meta.content=(data.display_name+" "+roleLabel(data.role)+" "+(data.organization||"")).slice(0,150);
   const initial=esc((data.display_name||"?").slice(0,1));
@@ -227,11 +240,80 @@ async function loadVerifiedPersonSources(){
   if(!data?.length){el.innerHTML=currentPerson.source_url?'<a target="_blank" rel="noopener" href="'+esc(currentPerson.source_url)+'">確認資料を開く</a>':"出典未登録";return;}
   el.innerHTML='<b>確認資料</b><br>'+data.map(s=>'<a target="_blank" rel="noopener" href="'+esc(s.url)+'">'+esc((s.publisher? s.publisher+"：":"")+(s.title||"資料を開く"))+'</a>'+(s.is_primary?' <span class="badge">本人確認</span>':'')).join('<br>');
 }
+function personTimelineEntries(person,rows){
+  const entries=[],seen=new Set();
+  const push=(sort,date,text)=>{
+    const key=sort+"|"+text;
+    if(!seen.has(key)){seen.add(key);entries.push({sort,date,text});}
+  };
+  if(person?.birth_date)push(person.birth_date,fmt(person.birth_date),"生年月日");
+  const bg=String(person?.background||"");
+  for(const part of bg.split(/[。\n]+/).map(x=>x.trim()).filter(Boolean)){
+    const matches=[...part.matchAll(/((?:19|20)\d{2})年(?:([01]?\d)月)?(?:([0-3]?\d)日)?/g)];
+    for(const m of matches){
+      const y=m[1],mo=m[2]?String(Number(m[2])).padStart(2,"0"):"00",d=m[3]?String(Number(m[3])).padStart(2,"0"):"00";
+      const label=y+"年"+(m[2]?Number(m[2])+"月":"")+(m[3]?Number(m[3])+"日":"");
+      push(y+"-"+mo+"-"+d,label,part);
+    }
+  }
+  for(const r of rows.slice(0,8)){
+    const c=r.cases||{};
+    if(c.event_date)push(c.event_date,fmt(c.event_date),"掲載事件："+(c.title||"")+(r.role_label?"（"+r.role_label+"）":""));
+  }
+  return entries.sort((a,b)=>a.sort.localeCompare(b.sort)).slice(-20);
+}
+
+function renderPersonTimeline(rows){
+  const el=document.getElementById("personTimeline");
+  if(!el)return;
+  const entries=personTimelineEntries(currentPerson,rows);
+  el.innerHTML=entries.length?entries.map(x=>'<div class="post"><div class="who">'+esc(x.date)+'</div><p>'+esc(x.text)+'</p></div>').join(""):'<div class="small">年表にできる確認済み情報はまだありません。</div>';
+}
+
+async function loadRelatedPeople(rows){
+  const el=document.getElementById("relatedPeople");
+  if(!el||!currentPerson?.id)return;
+  const caseIds=[...new Set(rows.map(r=>r.cases?.id).filter(Boolean))];
+  if(!caseIds.length){el.innerHTML='<div class="small">同じ掲載事件に紐づく確認済み人物はいません。</div>';return}
+  const {data:links,error}=await sb.from("case_people")
+    .select("case_id,person_id,role_label,cases(event_date)")
+    .in("case_id",caseIds)
+    .neq("person_id",currentPerson.id);
+  if(error){console.error(error);el.innerHTML='<div class="small">関連人物を読み込めませんでした。</div>';return}
+  const personIds=[...new Set((links||[]).map(x=>x.person_id).filter(Boolean))];
+  if(!personIds.length){el.innerHTML='<div class="small">同じ掲載事件に紐づく確認済み人物はいません。</div>';return}
+  const {data:people,error:pe}=await sb.from("people")
+    .select("id,display_name,role,organization,verification_status")
+    .in("id",personIds)
+    .eq("verification_status","verified");
+  if(pe){console.error(pe);el.innerHTML='<div class="small">関連人物を読み込めませんでした。</div>';return}
+  const pm=new Map((people||[]).map(p=>[p.id,p])),stats=new Map();
+  for(const l of links||[]){
+    const p=pm.get(l.person_id); if(!p)continue;
+    if(!stats.has(p.id))stats.set(p.id,{p,count:0,cases:new Set(),last:""});
+    const x=stats.get(p.id);
+    if(!x.cases.has(l.case_id)){x.cases.add(l.case_id);x.count++;}
+    const d=String(l.cases?.event_date||"");if(d>x.last)x.last=d;
+  }
+  const out=[...stats.values()].sort((a,b)=>b.count-a.count||b.last.localeCompare(a.last)||String(a.p.display_name).localeCompare(String(b.p.display_name),"ja")).slice(0,10);
+  el.innerHTML=out.length?out.map(x=>'<div class="post"><div class="who">'+esc(roleLabel(x.p.role))+' · 共通の掲載事件 '+x.count+'件</div><p><a href="person.html?id='+encodeURIComponent(x.p.id)+'"><b>'+esc(x.p.display_name)+'</b></a>'+(x.p.organization?'<br><span class="small">'+esc(x.p.organization)+'</span>':'')+'</p></div>').join(""):'<div class="small">同じ掲載事件に紐づく確認済み人物はいません。</div>';
+}
+
 async function loadCases(){
-  const {data,error}=await sb.from("case_people").select("role_label,cases(id,slug,title,court,event_date,status)").eq("person_id",currentPerson.id);
+  const {data,error}=await sb.from("case_people").select("case_id,role_label,cases(id,slug,title,court,event_date,status)").eq("person_id",currentPerson.id);
   const el=document.getElementById("cases");
-  if(error||!data?.length){el.innerHTML='<div class="small">紐付け済み事件はありません。</div>';return}
-  el.innerHTML=data.map(r=>{const c=r.cases||{},href=c.slug?'case.html?slug='+encodeURIComponent(c.slug):'case.html?id='+encodeURIComponent(c.id||"");return '<div class="post"><div class="who">'+esc(r.role_label||"関係者")+'</div><p><a href="'+href+'"><b>'+esc(c.title||"")+'</b></a><br><span class="small">'+esc(c.court||"")+' · '+esc(fmt(c.event_date))+'</span></p><a class="btn" href="'+href+'">事件ページを開く</a></div>'}).join("");
+  if(error||!data?.length){
+    el.innerHTML='<div class="small">紐付け済み事件はありません。</div>';
+    renderPersonTimeline([]);
+    const rel=document.getElementById("relatedPeople");if(rel)rel.innerHTML='<div class="small">同じ掲載事件に紐づく確認済み人物はいません。</div>';
+    return;
+  }
+  const rows=[...data].sort((a,b)=>String(b.cases?.event_date||"").localeCompare(String(a.cases?.event_date||"")));
+  const card=r=>{const c=r.cases||{},href=c.slug?'case.html?slug='+encodeURIComponent(c.slug):'case.html?id='+encodeURIComponent(c.id||"");return '<div class="post"><div class="who">'+esc(r.role_label||"関係者")+'</div><p><a href="'+href+'"><b>'+esc(c.title||"")+'</b></a><br><span class="small">'+esc(c.court||"")+' · '+esc(fmt(c.event_date))+'</span></p><a class="btn" href="'+href+'">事件ページを開く</a></div>'};
+  const main=rows.slice(0,8),extra=rows.slice(8);
+  el.innerHTML=main.map(card).join("")+(extra.length?'<details style="margin-top:10px"><summary>ほかの掲載事件 '+extra.length+'件を見る</summary>'+extra.map(card).join("")+'</details>':'');
+  renderPersonTimeline(rows);
+  await loadRelatedPeople(rows);
 }
 async function loadPosts(){
   if(!currentTargetType||!currentTargetId)return;
