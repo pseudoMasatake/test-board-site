@@ -99,7 +99,7 @@ function casePage(c){
   const topicLinks=topicDefs.filter(t=>t.match(c)).slice(0,5).map(t=>'<a href="../topics/'+t.slug+'.html">'+h(t.name)+'</a>').join(" · ");
   const json=JSON.stringify({"@context":"https://schema.org","@graph":[{"@type":"WebPage","@id":url,"url":url,"name":c.title,"description":desc,"dateModified":String(c.updated_at||"").slice(0,10),"isPartOf":{"@type":"WebSite","name":"裁判ウォッチ","url":"https://saibanwatch.github.io/"}},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"裁判ウォッチ","item":"https://saibanwatch.github.io/"},{"@type":"ListItem","position":2,"name":(c.category||"裁判")+"裁判","item":"https://saibanwatch.github.io/"+cf},{"@type":"ListItem","position":3,"name":c.title,"item":url}]}]}).replace(/</g,"\\u003c");
   const result=(req||jud)?'<section class="panel"><h2>求刑・判決</h2><div class="grid">'+(req?'<div class="info"><h3>求刑</h3><p>'+h(req)+'</p></div>':"")+(jud?'<div class="info"><h3>判決</h3><p>'+h(jud)+'</p></div>':"")+'</div></section>':"";
-  const pendingClaims=c.raw_metadata?.fulltext_pdf_url?"判決全文の主張部分を解析中です。":(c.source_kind==="courts.go.jp/hanrei"?"判決全文を取得・解析中です。":"主張を確認できる原資料が未登録です。");
+  const pendingClaims=c.raw_metadata?.fulltext_pdf_url?"判決全文を確認し、要約を編集中です。":(c.source_kind==="courts.go.jp/hanrei"?"判決全文を取得・確認中です。":"要約を作成できる原資料を確認中です。");
   const claims='<section class="panel"><h2>主張と裁判所の判断</h2><div class="grid">' + '<div class="info"><h3>'+h(ai.side_a_label||(c.category==="刑事"?"検察側の主張":"原告・申立人側の主張"))+'</h3><p>'+h(pros||pendingClaims)+'</p></div>' + '<div class="info"><h3>'+h(ai.side_b_label||(c.category==="刑事"?"弁護側の主張":"被告・相手方側の主張"))+'</h3><p>'+h(def||pendingClaims)+'</p></div>' + '<div class="info"><h3>裁判所の判断</h3><p>'+h(courtv||pendingClaims)+'</p></div></div></section>';
   const persons=ppl.length?'<section class="panel"><h2>この事件の関係者</h2><ul class="list">'+ppl.map(p=>'<li><a href="../people/'+encodeURIComponent(p.id)+'.html"><strong>'+h(p.display_name)+'</strong></a><div class="meta">'+h(p.role_label||roles[p.role]||"関係者")+(p.organization?" · "+h(p.organization):"")+'</div></li>').join("")+'</ul></section>':"";
   const sources=allsrc.length?'<section class="panel"><h2>出典・原資料</h2><ul class="list">'+allsrc.map(s=>'<li><a href="'+h(safe(s.url))+'" target="_blank" rel="noopener noreferrer">'+h(s.title||s.publisher||"資料を開く")+'</a>'+(s.publisher?'<div class="meta">'+h(s.publisher)+'</div>':"")+'</li>').join("")+'</ul><p class="note">要約は原資料の代替ではありません。重要な内容はリンク先の原資料で確認してください。</p></section>':"";
@@ -234,4 +234,5 @@ console.log("Generated",cases.length,"case pages,",people.length,"person pages a
 // profile-refresh-trigger: 2026-09-22-person-timeline-related
 
 
-// claim-refresh-trigger: 2026-09-22-claim-parser-v4
+
+// claim-refresh-trigger: 2026-09-22-editorial-batch-30
