@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import {createHash} from "node:crypto";
 
 const index=fs.readFileSync("index.html","utf8");
 const urlMatch=index.match(/SUPABASE_URL="([^"]+)"/)||index.match(/createClient\("([^"]+)"/);
@@ -69,7 +70,8 @@ fs.mkdirSync("sitemaps",{recursive:true});
 
 function catFile(c){return c==="刑事"?"criminal.html":c==="民事"?"civil.html":c==="行政"?"administrative.html":"index.html"}
 
-const caseText=c=>[c.title,c.summary,c.judgment_result,c.court_view,c.sentencing_request,c.sentence_request].filter(Boolean).join(" ");
+const caseAliases=c=>{const v=c?.raw_metadata?.alternate_names??c?.raw_metadata?.aliases??[];const rows=Array.isArray(v)?v:String(v||"").split(/[|｜,、\n]+/);return [...new Set(rows.map(x=>txt(x,120)).filter(Boolean))].slice(0,8)};
+const caseText=c=>[c.title,...caseAliases(c),c.summary,c.judgment_result,c.court_view,c.sentencing_request,c.sentence_request].filter(Boolean).join(" ");
 const topicDefs=[
   {slug:"murder",name:"殺人事件",desc:"殺人に関する掲載裁判例を、裁判所・判決日・判決結果などとともに確認できます。",re:/殺人/},
   {slug:"attempted-murder",name:"殺人未遂・殺人予備の裁判例",desc:"殺人未遂、殺人予備に関する掲載裁判例を確認できます。",re:/殺人未遂|殺人予備/},
