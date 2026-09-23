@@ -188,13 +188,13 @@ function staticAdSlot(id,type="responsive"){
 
 function casePage(c){
   const url="https://saibanwatch.github.io/cases/"+encodeURIComponent(c.slug)+".html";
-  const sum=txt(c.summary,1800), num=txt(c.raw_metadata?.case_number,120);
+  const sum=txt(c.summary,1800), num=txt(c.raw_metadata?.case_number,120), aliases=caseAliases(c);
   const req=txt(c.sentencing_request||c.sentence_request,1200), jud=txt(c.judgment_result,1800);
   const ai=summaryByCase.get(c.id)||{}, pros=txt(ai.side_a_summary,2200), def=txt(ai.side_b_summary,2200), courtv=txt(ai.court_summary,2800);
   const dateLabel=c.event_date?jpdate(c.event_date):"";
   const seoBits=[c.court,dateLabel,jud?"判決":"",req?"求刑":""].filter(Boolean);
   const seoTitle=txt(c.title+(seoBits.length?"｜"+seoBits.join("・"):"")+"｜裁判ウォッチ",120);
-  const desc=txt([c.title,c.court,dateLabel,jud?"判決："+jud:"",req?"求刑："+req:"",!jud&&sum?sum:""].filter(Boolean).join("。"),155);
+  const desc=txt([c.title,aliases.length?"別名・報道上の呼称："+aliases.join("、"):"",c.court,dateLabel,jud?"判決："+jud:"",req?"求刑："+req:"",!jud&&sum?sum:""].filter(Boolean).join("。"),155);
   const ppl=(peopleByCase.get(c.id)||[]).slice(0,30), srcMain=safe(c.source_url);
   const allsrc=[...(srcMain?[{url:srcMain,title:c.source_label||"原資料",publisher:c.source_label||""}]:[]),...(sourcesByCase.get(c.id)||[]).filter(s=>safe(s.url)&&safe(s.url)!==srcMain)];
   const cf=catFile(c.category);
