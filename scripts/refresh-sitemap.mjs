@@ -363,18 +363,22 @@ function urlset(rows){return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xm
 const caseMap=cases.map(c=>({loc:"https://saibanwatch.github.io/cases/"+encodeURIComponent(c.slug)+".html",lastmod:String(c.updated_at||"").slice(0,10)}));
 const peopleMap=[{loc:"https://saibanwatch.github.io/people.html"},...people.map(p=>({loc:"https://saibanwatch.github.io/people/"+encodeURIComponent(p.id)+".html",lastmod:String(p.created_at||"").slice(0,10)}))];
 const topicMap=[{loc:"https://saibanwatch.github.io/topics.html"},...topicRows.map(t=>({loc:"https://saibanwatch.github.io/topics/"+t.slug+".html"}))];
+const courtMap=[{loc:"https://saibanwatch.github.io/courts.html"},...courtDefs.map(d=>({loc:"https://saibanwatch.github.io/courts/"+d.slug+".html"}))];
+const yearMap=[{loc:"https://saibanwatch.github.io/years.html"},...yearDefs.map(d=>({loc:"https://saibanwatch.github.io/years/"+d.year+".html"}))];
 const archiveUrls=[{loc:"https://saibanwatch.github.io/all-cases.html"},...Array.from({length:Math.max(0,allCasesTotalPages-1)},(_,i)=>({loc:"https://saibanwatch.github.io/case-archive/page-"+(i+2)+".html"}))];
-const staticUrls=["https://saibanwatch.github.io/","https://saibanwatch.github.io/criminal.html","https://saibanwatch.github.io/civil.html","https://saibanwatch.github.io/administrative.html","https://saibanwatch.github.io/acquittals.html","https://saibanwatch.github.io/sentencing.html","https://saibanwatch.github.io/latest.html","https://saibanwatch.github.io/topics.html","https://saibanwatch.github.io/terms.html","https://saibanwatch.github.io/community-guidelines.html","https://saibanwatch.github.io/privacy.html","https://saibanwatch.github.io/disclaimer.html","https://saibanwatch.github.io/contact.html","https://saibanwatch.github.io/advertising.html"].map(loc=>({loc}));
+const staticUrls=["https://saibanwatch.github.io/","https://saibanwatch.github.io/courts.html","https://saibanwatch.github.io/years.html","https://saibanwatch.github.io/criminal.html","https://saibanwatch.github.io/civil.html","https://saibanwatch.github.io/administrative.html","https://saibanwatch.github.io/acquittals.html","https://saibanwatch.github.io/sentencing.html","https://saibanwatch.github.io/latest.html","https://saibanwatch.github.io/topics.html","https://saibanwatch.github.io/terms.html","https://saibanwatch.github.io/community-guidelines.html","https://saibanwatch.github.io/privacy.html","https://saibanwatch.github.io/disclaimer.html","https://saibanwatch.github.io/contact.html","https://saibanwatch.github.io/advertising.html"].map(loc=>({loc}));
 fs.writeFileSync("sitemaps/cases.xml",urlset(caseMap));
 fs.writeFileSync("sitemaps/people.xml",urlset(peopleMap));
 fs.writeFileSync("sitemaps/topics.xml",urlset(topicMap));
+fs.writeFileSync("sitemaps/courts.xml",urlset(courtMap));
+fs.writeFileSync("sitemaps/years.xml",urlset(yearMap));
 fs.writeFileSync("sitemaps/static.xml",urlset(staticUrls));
-const allMap=[...caseMap,...peopleMap,...topicMap,...archiveUrls,...staticUrls];
+const allMap=[...caseMap,...peopleMap,...topicMap,...courtMap,...yearMap,...archiveUrls,...staticUrls];
 const seen=new Set();
 const rootMap=allMap.filter(r=>r&&r.loc&&!seen.has(r.loc)&&seen.add(r.loc));
 fs.writeFileSync("sitemap.xml",urlset(rootMap));
 fs.writeFileSync("sitemap.txt",rootMap.map(r=>r.loc).join("\n")+"\n");
-console.log("Generated",cases.length,"case pages,",people.length,"person pages and",topicRows.length,"topic pages");
+console.log("Generated",cases.length,"case pages,",people.length,"person pages,",topicRows.length,"topic pages,",courtDefs.length,"court pages and",yearDefs.length,"year pages");
 
 // refresh-trigger: 2026-09-21-new-people
 
