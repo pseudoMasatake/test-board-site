@@ -94,7 +94,7 @@ const courtDefByName=new Map(courtDefs.map(x=>[x.name,x]));
 const yearGroups=new Map;
 for(const c of cases){
   const y=String(c.event_date||"").slice(0,4);
-  if(!/^\\d{4}$/.test(y))continue;
+  if(!/^\d{4}$/.test(y))continue;
   if(!yearGroups.has(y))yearGroups.set(y,[]);
   yearGroups.get(y).push(c);
 }
