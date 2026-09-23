@@ -17,7 +17,7 @@
     .tabs{display:flex;gap:8px;overflow:auto;margin-bottom:14px}.tab{white-space:nowrap}.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
     .item{border-top:1px solid var(--line);padding:14px 0}.item:first-child{border-top:0}.item-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.badge{font-size:11px;padding:3px 7px;border-radius:999px;background:#eef2f6;color:#344054}.badge.open{background:#fff1f2;color:#9f1239}.badge.hidden{background:#fff7ed;color:#9a3412}.badge.visible{background:#ecfdf3;color:#166534}
     .body{white-space:pre-wrap;margin:8px 0;font-size:14px}.actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.empty{padding:18px;border:1px dashed var(--line);border-radius:12px;color:var(--muted)}
-    .case-edit{display:grid;grid-template-columns:1.2fr .8fr .6fr auto;gap:8px;align-items:center}.case-edit input,.case-edit select{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px}
+    .case-edit{display:grid;grid-template-columns:1.2fr .8fr 1fr .6fr auto;gap:8px;align-items:center}.case-edit input,.case-edit select{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px}
     .candidate-box{margin-top:9px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#f8fafc}.candidate-box b{font-size:13px}.candidate-cases{margin:6px 0 0;padding-left:18px;color:var(--muted);font-size:12px}.candidate-note{font-size:11px;color:var(--muted);margin-top:6px}.same-name{color:var(--ok);font-weight:700}.candidate-form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.candidate-form input,.candidate-form select,.candidate-form textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff}.candidate-form textarea{grid-column:1/-1;min-height:72px;resize:vertical}@media(max-width:760px){.candidate-form{grid-template-columns:1fr}.candidate-form textarea{grid-column:auto}}
     @media(max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.case-edit{grid-template-columns:1fr}.item-head{flex-direction:column}}
   </style>
@@ -232,12 +232,13 @@ async function loadPosts(){
 }
 
 async function loadCases(){
-  const {data,error}=await sb.from("cases").select("id,title,court,status,event_date,updated_at").order("event_date",{ascending:false}).limit(150);
+  const {data,error}=await sb.from("cases").select("id,title,court,status,event_date,updated_at,raw_metadata").order("event_date",{ascending:false}).limit(150);
   if(error){content.innerHTML='<div class="empty">事件を取得できません。</div>';return}
   content.innerHTML=data?.length?data.map(c=>`
     <div class="item"><div class="case-edit">
       <input id="title-${c.id}" value="${esc(c.title)}">
       <input id="court-${c.id}" value="${esc(c.court||"")}">
+      <input id="aliases-${c.id}" value="${esc((Array.isArray(c.raw_metadata?.alternate_names)?c.raw_metadata.alternate_names:[]).join("｜"))}" placeholder="別名・報道上の呼称（｜区切り）">
       <input id="status-${c.id}" value="${esc(c.status||"")}">
       <button class="btn primary" onclick="saveCase('${c.id}')">保存</button>
     </div><div class="muted">${esc(c.event_date||"")} · 最終更新 ${esc(dt(c.updated_at))}</div></div>`).join(""):'<div class="empty">事件はありません。</div>';
@@ -579,7 +580,11 @@ async function saveCase(id){
   const title=document.getElementById("title-"+id).value.trim();
   const court=document.getElementById("court-"+id).value.trim();
   const status=document.getElementById("status-"+id).value.trim();
-  const {error}=await sb.from("cases").update({title,court,status,updated_at:new Date().toISOString()}).eq("id",id);
+  const alternate_names=[...new Set(document.getElementById("aliases-"+id).value.split(/[|｜\n]+/).map(x=>x.trim()).filter(Boolean))].slice(0,8);
+  const {data:row,error:readError}=await sb.from("cases").select("raw_metadata").eq("id",id).single();
+  if(readError){alert("現在の事件情報を取得できませんでした。");console.error(readError);return}
+  const raw_metadata={...(row?.raw_metadata||{}),alternate_names};
+  const {error}=await sb.from("cases").update({title,court,status,raw_metadata,updated_at:new Date().toISOString()}).eq("id",id);
   if(error){alert("保存できませんでした。");console.error(error);return}alert("保存しました。");
 }
 
