@@ -72,19 +72,48 @@ function catFile(c){return c==="刑事"?"criminal.html":c==="民事"?"civil.html
 const caseText=c=>[c.title,c.summary,c.judgment_result,c.court_view,c.sentencing_request,c.sentence_request].filter(Boolean).join(" ");
 const topicDefs=[
   {slug:"murder",name:"殺人事件",desc:"殺人に関する掲載裁判例を、裁判所・判決日・判決結果などとともに確認できます。",re:/殺人/},
+  {slug:"attempted-murder",name:"殺人未遂・殺人予備の裁判例",desc:"殺人未遂、殺人予備に関する掲載裁判例を確認できます。",re:/殺人未遂|殺人予備/},
   {slug:"robbery",name:"強盗事件",desc:"強盗に関する掲載裁判例を、裁判所・判決日・判決結果などとともに確認できます。",re:/強盗/},
   {slug:"fraud",name:"詐欺事件",desc:"詐欺に関する掲載裁判例を、裁判所・判決日・判決結果などとともに確認できます。",re:/詐欺/},
+  {slug:"special-fraud",name:"特殊詐欺の裁判例",desc:"特殊詐欺、オレオレ詐欺、還付金詐欺などに関する掲載裁判例を確認できます。",re:/特殊詐欺|オレオレ詐欺|還付金詐欺/},
   {slug:"theft",name:"窃盗事件",desc:"窃盗に関する掲載裁判例を、裁判所・判決日・判決結果などとともに確認できます。",re:/窃盗/},
+  {slug:"embezzlement",name:"横領・背任の裁判例",desc:"横領、業務上横領、背任などに関する掲載裁判例を確認できます。",re:/横領|背任/},
   {slug:"assault",name:"傷害事件",desc:"傷害に関する掲載裁判例を、裁判所・判決日・判決結果などとともに確認できます。",re:/傷害/},
+  {slug:"violence",name:"暴行事件",desc:"暴行に関する掲載裁判例を確認できます。",re:/暴行/},
   {slug:"arson",name:"放火事件",desc:"放火に関する掲載裁判例を、裁判所・判決日・判決結果などとともに確認できます。",re:/放火/},
-  {slug:"drugs",name:"薬物事件",desc:"覚醒剤・大麻・麻薬など薬物に関する掲載裁判例を確認できます。",re:/覚醒剤|大麻|麻薬|薬物/},
-  {slug:"traffic",name:"危険運転・交通事故",desc:"危険運転、過失運転、交通事故に関する掲載裁判例を確認できます。",re:/危険運転|過失運転|交通事故/},
-  {slug:"sexual-offenses",name:"性犯罪の裁判例",desc:"不同意性交、不同意わいせつ、強制性交、強制わいせつ等に関する掲載裁判例を確認できます。",re:/不同意性交|不同意わいせつ|強制性交|強姦|強制わいせつ|わいせつ|痴漢|盗撮/},
+  {slug:"drugs",name:"覚醒剤・大麻・薬物事件",desc:"覚醒剤、大麻、麻薬など薬物に関する掲載裁判例を確認できます。",re:/覚醒剤|大麻|麻薬|向精神薬|薬物/},
+  {slug:"traffic",name:"危険運転・交通事故の裁判例",desc:"危険運転、過失運転、ひき逃げ、飲酒運転など交通事件の掲載裁判例を確認できます。",re:/危険運転|過失運転|道路交通法|交通事故|ひき逃げ|酒気帯び|飲酒運転/},
+  {slug:"sexual-offenses",name:"性犯罪の裁判例",desc:"不同意性交、不同意わいせつ、強制性交、強制わいせつ等に関する掲載裁判例を確認できます。",re:/不同意性交|不同意わいせつ|強制性交|準強制性交|強姦|強制わいせつ|わいせつ|痴漢|盗撮/},
+  {slug:"child-abuse",name:"児童虐待・子どもが被害者の裁判例",desc:"児童虐待、乳幼児への犯罪、保護責任者遺棄などに関する掲載裁判例を確認できます。",re:/児童虐待|虐待|乳児|幼児|保護責任者遺棄/},
+  {slug:"stalking",name:"ストーカー・つきまといの裁判例",desc:"ストーカー、つきまといに関する掲載裁判例を確認できます。",re:/ストーカー|つきまとい/},
+  {slug:"organized-crime",name:"暴力団・組織犯罪の裁判例",desc:"暴力団、組員、組長などが関係する掲載裁判例を確認できます。",re:/暴力団|組員|組長|工藤会|山口組/},
+  {slug:"bribery",name:"贈収賄の裁判例",desc:"贈賄、収賄など贈収賄事件の掲載裁判例を確認できます。",re:/贈賄|収賄|賄賂/},
+  {slug:"public-official",name:"公務員犯罪・職権濫用の裁判例",desc:"公務員、職権濫用、公文書に関する掲載裁判例を確認できます。",re:/公務員|職権濫用|公文書/},
+  {slug:"forgery",name:"文書偽造・不実記録の裁判例",desc:"文書偽造、変造、不実記録などに関する掲載裁判例を確認できます。",re:/偽造|変造|不実記録/},
+  {slug:"cybercrime",name:"サイバー犯罪・不正アクセスの裁判例",desc:"不正アクセス、電子計算機、電磁的記録などに関する掲載裁判例を確認できます。",re:/不正アクセス|電子計算機|サイバー|コンピュータ|電磁的記録/},
+  {slug:"defamation-privacy",name:"名誉毀損・プライバシーの裁判例",desc:"名誉毀損、侮辱、プライバシー、個人情報に関する掲載裁判例を確認できます。",re:/名誉毀損|侮辱|プライバシー|個人情報/},
   {slug:"welfare",name:"生活保護の裁判例",desc:"生活保護をめぐる行政・民事等の掲載裁判例を確認できます。",re:/生活保護/},
   {slug:"medical",name:"医療・医療過誤の裁判例",desc:"医療、医師、病院、医療過誤に関する掲載裁判例を確認できます。",re:/医療|医師|病院|医療過誤/},
   {slug:"labor",name:"労働・解雇・賃金の裁判例",desc:"労働、解雇、残業、賃金に関する掲載裁判例を確認できます。",re:/労働|解雇|残業|賃金/},
   {slug:"intellectual-property",name:"著作権・特許・商標の裁判例",desc:"著作権、特許、商標、知的財産に関する掲載裁判例を確認できます。",re:/著作権|特許|商標|知的財産/},
-  {slug:"tax",name:"税務・課税の裁判例",desc:"所得税、法人税、課税、租税、税務に関する掲載裁判例を確認できます。",re:/所得税|法人税|課税|租税|税務/}
+  {slug:"tax",name:"税務・課税の裁判例",desc:"所得税、法人税、課税、租税、税務に関する掲載裁判例を確認できます。",re:/所得税|法人税|課税|租税|税務/},
+  {slug:"consumer",name:"消費者・契約トラブルの裁判例",desc:"消費者被害、契約、解約などに関する掲載裁判例を確認できます。",re:/消費者|契約|解約/},
+  {slug:"family",name:"離婚・親権・家族の裁判例",desc:"離婚、親権、養育費、婚姻、面会交流など家族関係の掲載裁判例を確認できます。",re:/離婚|親権|養育費|婚姻|面会交流/},
+  {slug:"inheritance",name:"相続・遺産・遺言の裁判例",desc:"相続、遺産、遺言に関する掲載裁判例を確認できます。",re:/相続|遺産|遺言/},
+  {slug:"real-estate",name:"不動産・土地・建物の裁判例",desc:"不動産、土地、建物、賃貸、明渡しなどに関する掲載裁判例を確認できます。",re:/不動産|土地|建物|賃貸|明渡/},
+  {slug:"construction",name:"建築・建設・工事の裁判例",desc:"建築、建設、工事、請負に関する掲載裁判例を確認できます。",re:/建築|建設|工事|請負/},
+  {slug:"corporate",name:"会社・取締役・株主の裁判例",desc:"会社、取締役、株主、法人など企業活動に関する掲載裁判例を確認できます。",re:/会社|取締役|株主|法人/},
+  {slug:"antitrust",name:"独占禁止法・談合の裁判例",desc:"独占禁止法、談合、カルテルなど競争法に関する掲載裁判例を確認できます。",re:/独占禁止法|談合|カルテル/},
+  {slug:"damages",name:"損害賠償・慰謝料の裁判例",desc:"損害賠償、慰謝料の請求に関する掲載裁判例を確認できます。",re:/損害賠償|慰謝料/},
+  {slug:"administrative-disputes",name:"行政処分・取消訴訟の裁判例",desc:"行政処分、処分取消、義務付けなど行政争訟に関する掲載裁判例を確認できます。",re:/行政処分|処分取消|取消請求|義務付け/},
+  {slug:"constitutional",name:"憲法・違憲判断の裁判例",desc:"憲法、違憲性が争点となった掲載裁判例を確認できます。",re:/憲法|違憲/},
+  {slug:"environment",name:"環境・廃棄物・公害の裁判例",desc:"環境、廃棄物、公害、土砂などに関する掲載裁判例を確認できます。",re:/環境|廃棄物|公害|土砂/},
+  {slug:"education",name:"学校・教員・教育の裁判例",desc:"学校、教員、教育、大学などに関する掲載裁判例を確認できます。",re:/学校|教員|教育|大学/},
+  {slug:"appeals",name:"控訴・上告の裁判例",desc:"控訴、上告に関する掲載裁判例を確認できます。",re:/控訴|上告/},
+  {slug:"suspended-sentence",name:"執行猶予付き判決の裁判例",desc:"判決結果に執行猶予が確認できる掲載裁判例を確認できます。",re:/執行猶予/},
+  {slug:"life-sentence",name:"無期懲役・無期拘禁刑の裁判例",desc:"無期懲役、無期拘禁刑に関する掲載裁判例を確認できます。",re:/無期懲役|無期拘禁刑/},
+  {slug:"death-penalty",name:"死刑判決・死刑求刑の裁判例",desc:"死刑判決、死刑求刑に関する掲載裁判例を確認できます。",re:/死刑/},
+  {slug:"fine",name:"罰金刑の裁判例",desc:"判決や求刑に罰金が確認できる掲載裁判例を確認できます。",re:/罰金/}
 ].map(t=>({...t,match:c=>t.re.test(caseText(c))}));
 
 const topicIdsByCase=new Map(cases.map(c=>[c.id,topicDefs.filter(t=>t.match(c)).map(t=>t.slug)]));
@@ -254,7 +283,7 @@ const topicRows=topicDefs.map(t=>({...t,rows:cases.filter(t.match).sort(byDate)}
 for(const t of topicRows) fs.writeFileSync("topics/"+t.slug+".html",topicPage(t,t.rows));
 const topicsIndexJson=JSON.stringify({"@context":"https://schema.org","@graph":[{"@type":"CollectionPage","name":"事件テーマ別の裁判・判決一覧","url":"https://saibanwatch.github.io/topics.html","isPartOf":{"@type":"WebSite","name":"裁判ウォッチ","url":"https://saibanwatch.github.io/"}},{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"裁判ウォッチ","item":"https://saibanwatch.github.io/"},{"@type":"ListItem","position":2,"name":"事件テーマ","item":"https://saibanwatch.github.io/topics.html"}]},{"@type":"ItemList","name":"事件テーマ","itemListElement":topicRows.map((t,i)=>({"@type":"ListItem","position":i+1,"name":t.name,"url":"https://saibanwatch.github.io/topics/"+t.slug+".html"}))}]}).replace(/</g,"\\u003c");
 const topicCards=topicRows.map(t=>'<li><a href="topics/'+t.slug+'.html"><strong>'+h(t.name)+'</strong></a><div class="meta">'+t.rows.length+'件</div><div class="note" style="margin-top:4px">'+h(t.desc)+'</div></li>').join("");
-fs.writeFileSync("topics.html",'<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>事件テーマ別の裁判・判決一覧 | 裁判ウォッチ</title><meta name="description" content="殺人、強盗、詐欺、交通事故、生活保護、医療、労働、知的財産など、事件テーマ別に裁判・判決を探せます。"><meta name="robots" content="index,follow"><link rel="canonical" href="https://saibanwatch.github.io/topics.html"><link rel="alternate" type="application/rss+xml" title="裁判ウォッチ 新着裁判" href="feed.xml"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="seo.css"><script src="analytics.js" defer></script><meta property="og:type" content="website"><meta property="og:site_name" content="裁判ウォッチ"><meta property="og:title" content="事件テーマ別の裁判・判決一覧 | 裁判ウォッチ"><meta property="og:description" content="殺人、強盗、詐欺、交通事故、生活保護、医療、労働、知的財産などテーマ別に裁判例を探せます。"><meta property="og:url" content="https://saibanwatch.github.io/topics.html"><meta name="twitter:card" content="summary"><script type="application/ld+json">'+topicsIndexJson+'</script></head><body><header><div class="nav"><a class="brand" href="index.html">裁判ウォッチ</a><nav class="navlinks"><a href="criminal.html">刑事</a><a href="civil.html">民事</a><a href="administrative.html">行政</a><a href="people.html">人物</a></nav></div></header><main><div class="breadcrumbs"><a href="index.html">トップ</a> › 事件テーマ</div><section class="panel"><h1>事件テーマ別の裁判・判決一覧</h1><p class="summary">罪名・争点・分野から掲載裁判例を探せます。各ページでは裁判所、判決日、判決結果、事件概要から個別事件へ移動できます。</p></section><section class="panel"><ul class="list">'+topicCards+'</ul></section></main><footer>テーマ分類は公開資料の事件名・概要・判決等に含まれる語をもとに自動整理しています。</footer></body></html>');
+fs.writeFileSync("topics.html",'<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>事件テーマ別の裁判・判決一覧 | 裁判ウォッチ</title><meta name="description" content="殺人、詐欺、性犯罪、交通事故、労働、医療、相続、行政訴訟、執行猶予など、罪名・争点・判決結果から裁判例を探せます。"><meta name="robots" content="index,follow"><link rel="canonical" href="https://saibanwatch.github.io/topics.html"><link rel="alternate" type="application/rss+xml" title="裁判ウォッチ 新着裁判" href="feed.xml"><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="seo.css"><script src="analytics.js" defer></script><meta property="og:type" content="website"><meta property="og:site_name" content="裁判ウォッチ"><meta property="og:title" content="事件テーマ別の裁判・判決一覧 | 裁判ウォッチ"><meta property="og:description" content="殺人、詐欺、性犯罪、交通事故、労働、医療、相続、行政訴訟、執行猶予などテーマ別に裁判例を探せます。"><meta property="og:url" content="https://saibanwatch.github.io/topics.html"><meta name="twitter:card" content="summary"><script type="application/ld+json">'+topicsIndexJson+'</script></head><body><header><div class="nav"><a class="brand" href="index.html">裁判ウォッチ</a><nav class="navlinks"><a href="criminal.html">刑事</a><a href="civil.html">民事</a><a href="administrative.html">行政</a><a href="people.html">人物</a></nav></div></header><main><div class="breadcrumbs"><a href="index.html">トップ</a> › 事件テーマ</div><section class="panel"><h1>事件テーマ別の裁判・判決一覧</h1><p class="summary">罪名・争点・分野から掲載裁判例を探せます。各ページでは裁判所、判決日、判決結果、事件概要から個別事件へ移動できます。</p></section><section class="panel"><ul class="list">'+topicCards+'</ul></section></main><footer>テーマ分類は公開資料の事件名・概要・判決等に含まれる語をもとに自動整理しています。</footer></body></html>');
 
 function rssDate(v){
   const d=new Date(v||"");
