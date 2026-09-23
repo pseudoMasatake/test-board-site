@@ -1770,6 +1770,9 @@ https://saibanwatch.github.io/courts/court-2529197bae8c.html
 https://saibanwatch.github.io/courts/court-7204c0de7ca0.html
 https://saibanwatch.github.io/courts/court-4ab841e5ead2.html
 https://saibanwatch.github.io/years.html
+https://saibanwatch.github.io/years/2026.html
+https://saibanwatch.github.io/years/2025.html
+https://saibanwatch.github.io/years/2024.html
 https://saibanwatch.github.io/all-cases.html
 https://saibanwatch.github.io/case-archive/page-2.html
 https://saibanwatch.github.io/case-archive/page-3.html
