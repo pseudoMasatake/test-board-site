@@ -62,16 +62,47 @@ fs.rmSync("cases",{recursive:true,force:true});
 fs.rmSync("people",{recursive:true,force:true});
 fs.rmSync("topics",{recursive:true,force:true});
 fs.rmSync("case-archive",{recursive:true,force:true});
+fs.rmSync("courts",{recursive:true,force:true});
+fs.rmSync("years",{recursive:true,force:true});
 fs.mkdirSync("cases",{recursive:true});
 fs.mkdirSync("people",{recursive:true});
 fs.mkdirSync("topics",{recursive:true});
 fs.mkdirSync("case-archive",{recursive:true});
+fs.mkdirSync("courts",{recursive:true});
+fs.mkdirSync("years",{recursive:true});
 fs.mkdirSync("sitemaps",{recursive:true});
 
 function catFile(c){return c==="刑事"?"criminal.html":c==="民事"?"civil.html":c==="行政"?"administrative.html":"index.html"}
 
 const caseAliases=c=>{const v=c?.raw_metadata?.alternate_names??c?.raw_metadata?.aliases??[];const rows=Array.isArray(v)?v:String(v||"").split(/[|｜,、\n]+/);return [...new Set(rows.map(x=>txt(x,120)).filter(Boolean))].slice(0,8)};
 const caseText=c=>[c.title,...caseAliases(c),c.summary,c.judgment_result,c.court_view,c.sentencing_request,c.sentence_request].filter(Boolean).join(" ");
+
+const courtGroups=new Map;
+for(const c of cases){
+  const name=txt(c.court,160);
+  if(!name)continue;
+  if(!courtGroups.has(name))courtGroups.set(name,[]);
+  courtGroups.get(name).push(c);
+}
+const courtSlug=name=>"court-"+createHash("sha1").update(name).digest("hex").slice(0,12);
+const courtDefs=[...courtGroups.entries()]
+  .map(([name,rows])=>({name,slug:courtSlug(name),rows:rows.sort((a,b)=>String(b.event_date||"").localeCompare(String(a.event_date||"")))}))
+  .filter(x=>x.rows.length>=5)
+  .sort((a,b)=>b.rows.length-a.rows.length||a.name.localeCompare(b.name,"ja"));
+const courtDefByName=new Map(courtDefs.map(x=>[x.name,x]));
+
+const yearGroups=new Map;
+for(const c of cases){
+  const y=String(c.event_date||"").slice(0,4);
+  if(!/^\\d{4}$/.test(y))continue;
+  if(!yearGroups.has(y))yearGroups.set(y,[]);
+  yearGroups.get(y).push(c);
+}
+const yearDefs=[...yearGroups.entries()]
+  .map(([year,rows])=>({year,rows:rows.sort((a,b)=>String(b.event_date||"").localeCompare(String(a.event_date||"")))}))
+  .filter(x=>x.rows.length>=10)
+  .sort((a,b)=>b.year.localeCompare(a.year));
+const yearDefByYear=new Map(yearDefs.map(x=>[x.year,x]));
 const topicDefs=[
   {slug:"murder",name:"殺人事件",desc:"殺人に関する掲載裁判例を、裁判所・判決日・判決結果などとともに確認できます。",re:/殺人/},
   {slug:"attempted-murder",name:"殺人未遂・殺人予備の裁判例",desc:"殺人未遂、殺人予備に関する掲載裁判例を確認できます。",re:/殺人未遂|殺人予備/},
