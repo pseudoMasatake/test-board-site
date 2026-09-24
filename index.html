@@ -821,7 +821,8 @@ window.COURTWATCH_ADS?.init(sb);
       const active=currentFilter;
       const sort=document.getElementById("sortMode")?.value||"new";
       let rows=casesCache.filter(c=>{
-        const aliases=Array.isArray(c.raw_metadata?.alternate_names)?c.raw_metadata.alternate_names:[c.raw_metadata?.alternate_names||c.raw_metadata?.aliases||""];\n        const hay=[c.title,...aliases,c.court,c.category,c.status,c.summary,c.raw_metadata?.case_number].join(" ").toLowerCase();
+        const aliases=Array.isArray(c.raw_metadata?.alternate_names)?c.raw_metadata.alternate_names:[c.raw_metadata?.alternate_names||c.raw_metadata?.aliases||""];
+        const hay=[c.title,...aliases,c.court,c.category,c.status,c.summary,c.raw_metadata?.case_number].join(" ").toLowerCase();
         const filterOk=
           active==="all"||
           c.category===active||
