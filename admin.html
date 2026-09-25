@@ -551,7 +551,7 @@ async function loadTraffic(){
       stat(s.last7_pv,"7日 PV")+stat(s.last7_visitors,"7日 訪問者")+
       stat(s.last30_pv,"30日 PV")+stat(s.last30_visitors,"30日 訪問者")+
     '</div>'+
-    '<div class="item"><div class="item-head"><div><b>直近30日の日別アクセス</b><div class="muted">PV＝ページ表示回数、訪問者＝ブラウザ単位の匿名ID数</div></div></div>'+
+    '<div class="item"><div class="item-head"><div><b>直近30日の日別アクセス</b><div class="muted">PV＝ページ表示回数、訪問者＝ブラウザ単位の匿名ID数（訪問者数は2026/9/25以降を計測）</div></div></div>'+
       (daily.length?daily.map(r=>'<div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:10px;padding:7px 0;border-top:1px solid var(--line)"><span>'+esc(r.day)+'</span><span>PV '+Number(r.pv||0).toLocaleString("ja-JP")+'</span><span>訪問者 '+Number(r.visitors||0).toLocaleString("ja-JP")+'</span></div>').join(""):'<div class="empty">まだデータがありません。</div>')+
     '</div>'+
     '<div class="item"><div class="item-head"><div><b>直近30日の閲覧上位ページ</b></div></div>'+
