@@ -1,8 +1,15 @@
 (()=>{"use strict";
 if(navigator.globalPrivacyControl===true||navigator.doNotTrack==="1"||window.doNotTrack==="1")return;
 if(/bot|crawler|spider|slurp|bingpreview|facebookexternalhit|whatsapp|telegrambot|discordbot|headless/i.test(navigator.userAgent||""))return;
-const endpoint="https://czhssdmwilnbrexqmtqg.supabase.co/rest/v1/rpc/log_page_view";
+const endpoint="https://czhssdmwilnbrexqmtqg.supabase.co/rest/v1/rpc/log_page_view_v2";
 const key="sb_publishable_HhXl8I3L4z-UF168b6wSiQ_WrQXa1Uc";
+function swUuid(){
+  if(globalThis.crypto&&typeof crypto.randomUUID==="function")return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==="x"?r:(r&3|8);return v.toString(16)});
+}
+function swStored(storage,key){
+  try{let v=storage.getItem(key);if(!v){v=swUuid();storage.setItem(key,v)}return v}catch{return swUuid()}
+}
 function classify(){
   const path=location.pathname||"/";
   let type="static",entity=null;
@@ -31,7 +38,7 @@ function send(){
     keepalive:true,
     credentials:"omit",
     headers:{"apikey":key,"Authorization":"Bearer "+key,"Content-Type":"application/json","Prefer":"return=minimal"},
-    body:JSON.stringify({p_page_type:v.type,p_entity_key:v.entity,p_path:v.path,p_referrer_host:referrer()})
+    body:JSON.stringify({p_page_type:v.type,p_entity_key:v.entity,p_path:v.path,p_referrer_host:referrer(),p_visitor_id:swStored(localStorage,"sw_visitor_id"),p_session_id:swStored(sessionStorage,"sw_session_id")})
   }).catch(()=>{});
 }
 if(document.prerendering){document.addEventListener("prerenderingchange",send,{once:true});}
