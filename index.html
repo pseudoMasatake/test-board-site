@@ -407,7 +407,10 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .primary:disabled{opacity:.5}
 .formrow{margin:10px 0}
 .formrow label{display:block;font-size:12px;font-weight:700;margin-bottom:3px}
-.formrow input{width:100%;padding:8px;border:1px solid #bbb;border-radius:4px}
+.formrow input,.formrow select,.formrow textarea{width:100%;padding:8px;border:1px solid #bbb;border-radius:4px;background:#fff}
+.formrow textarea{min-height:130px;resize:vertical}
+.request-note{font-size:12px;color:#777;margin:6px 0 12px}
+#requestStatus{font-size:12px;color:#777;margin-top:8px;min-height:1.65em}
 .authswitch{display:flex;gap:6px;margin-bottom:10px}
 .authswitch button{
   flex:1;border:1px solid #bbb;background:#fff;padding:7px;border-radius:4px
@@ -516,11 +519,12 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
       <div class="box" id="about">
         <h3>このサイトについて</h3>
         <p class="notice">公開資料をもとに、事件の概要や当事者の主張、裁判所の判断などを整理しています。求刑・判決への投票や投稿も掲載しています。原資料は各事件の出典から確認できます。</p>
+        <button class="tiny" id="featureRequestOpenBtn" type="button" style="margin-top:8px">機能・改善要望を送る</button>
       </div>
     </aside>
   </main>
 
-  <footer><b>裁判ウォッチ</b><br>要約は原資料の代替ではありません。各事件の詳細画面から出典を確認できます。<br><a href="terms.html">利用規約</a> · <a href="community-guidelines.html">投稿ルール</a> · <a href="privacy.html">プライバシー</a> · <a href="disclaimer.html">免責・情報の扱い</a> · <a href="advertising.html">広告について</a> · <a href="contact.html">問い合わせ</a> · <a href="feed.xml">RSS</a></footer>
+  <footer><b>裁判ウォッチ</b><br>要約は原資料の代替ではありません。各事件の詳細画面から出典を確認できます。<br><a href="terms.html">利用規約</a> · <a href="community-guidelines.html">投稿ルール</a> · <a href="privacy.html">プライバシー</a> · <a href="disclaimer.html">免責・情報の扱い</a> · <a href="advertising.html">広告について</a> · <a href="contact.html">問い合わせ</a> · <a href="#" id="featureRequestFooterLink">機能・改善要望</a> · <a href="feed.xml">RSS</a></footer>
 
   <div id="caseDialog" class="case-overlay" aria-hidden="true">
     <div class="case-overlay-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -626,6 +630,37 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
     </div>
   </div></dialog>
 
+  <dialog id="requestDialog"><div class="modal">
+    <div class="modal-head">
+      <div><div class="meta">FEEDBACK</div><h2>機能・改善要望</h2></div>
+      <button class="close" id="closeRequest" type="button">×</button>
+    </div>
+    <p class="request-note">追加してほしい機能、使いにくい点、掲載してほしい情報、不具合などを送れます。送信にはログインが必要です。</p>
+    <form id="featureRequestForm" onsubmit="return false">
+      <div class="formrow">
+        <label for="requestCategory">種類</label>
+        <select id="requestCategory">
+          <option value="feature">機能追加</option>
+          <option value="ux">使いやすさ・表示改善</option>
+          <option value="data">事件・人物・データの追加</option>
+          <option value="bug">不具合</option>
+          <option value="other">その他</option>
+        </select>
+      </div>
+      <div class="formrow">
+        <label for="requestTitle">件名</label>
+        <input id="requestTitle" maxlength="120" placeholder="例：事件を裁判所名で絞り込みたい">
+      </div>
+      <div class="formrow">
+        <label for="requestBody">詳しい内容</label>
+        <textarea id="requestBody" maxlength="3000" placeholder="どんな機能・改善がほしいか、困っていることなどを入力してください。"></textarea>
+      </div>
+      <p class="notice">送信時に、いま見ているページのURLも自動で添付されます。</p>
+      <button class="primary" id="submitFeatureRequest" type="button">送信する</button>
+      <div id="requestStatus" aria-live="polite"></div>
+    </form>
+  </div></dialog>
+
   <dialog id="adDialog"><div class="modal ad-modal">
     <div class="modal-head"><div><div class="meta">ADVERTISEMENT</div><h2>広告</h2></div></div>
     <div class="ad-frame" id="interstitialAdSlot">
@@ -704,7 +739,7 @@ window.COURTWATCH_ADS?.init(sb);
 
     let user=null, currentCase=null, currentPerson=null, activeThread="case", casesCache=[], peopleCache=[], authMode="login", currentPage=1, currentQuery="", currentFilter="all"; const pageSize=10;
     let tagCaseMatchIds=new Set(),tagPersonMatchIds=new Set(),tagMentionMatchIds=new Set();
-    const caseDialog=document.getElementById("caseDialog"), personDialog=document.getElementById("personDialog"), authDialog=document.getElementById("authDialog");
+    const caseDialog=document.getElementById("caseDialog"), personDialog=document.getElementById("personDialog"), authDialog=document.getElementById("authDialog"), requestDialog=document.getElementById("requestDialog");
 
     const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
     const authorHtml=p=>p.author_public_id?'<a href="user.html?id='+encodeURIComponent(p.author_public_id)+'">'+esc(p.display_name)+'</a>':esc(p.display_name);
@@ -1213,6 +1248,34 @@ window.COURTWATCH_ADS?.init(sb);
       alert("訂正依頼を受け付けました。");
     }
 
+    function openFeatureRequest(){
+      document.getElementById("requestStatus").textContent=user?"":"送信にはログインが必要です。";
+      if(!requestDialog.open)requestDialog.showModal();
+    }
+
+    async function submitFeatureRequest(){
+      const statusEl=document.getElementById("requestStatus");
+      if(!user){statusEl.textContent="送信するにはログインしてください。";needLogin();return;}
+      const category=document.getElementById("requestCategory").value;
+      const title=document.getElementById("requestTitle").value.trim();
+      const body=document.getElementById("requestBody").value.trim();
+      if(title.length<3){statusEl.textContent="件名は3文字以上で入力してください。";return;}
+      if(body.length<10){statusEl.textContent="詳しい内容は10文字以上で入力してください。";return;}
+      const btn=document.getElementById("submitFeatureRequest");
+      btn.disabled=true;statusEl.textContent="送信中...";
+      const {error}=await sb.from("feature_requests").insert({
+        requester_id:user.id,
+        category,
+        title:title.slice(0,120),
+        body:body.slice(0,3000),
+        page_url:location.href.slice(0,2000)
+      });
+      btn.disabled=false;
+      if(error){console.error(error);statusEl.textContent="送信できませんでした。時間をおいて再度お試しください。";return;}
+      document.getElementById("featureRequestForm").reset();
+      statusEl.textContent="要望を受け付けました。ありがとうございます。";
+    }
+
     async function votePost(postId,value){
       if(!user)return needLogin();
       const {error}=await sb.from("votes").upsert({post_id:postId,user_id:user.id,value},{onConflict:"post_id,user_id"});
@@ -1282,13 +1345,17 @@ window.COURTWATCH_ADS?.init(sb);
     };
 
     document.getElementById("authButton").onclick=async()=>{if(user){await sb.auth.signOut();user=null;updateAuthButton();if(currentCase){loadPosts();loadSentenceOpinion();}}else{runAction("open-auth",()=>{setAuthMode("login");authDialog.showModal();});}};
+    document.getElementById("featureRequestOpenBtn").onclick=openFeatureRequest;
+    document.getElementById("featureRequestFooterLink").onclick=e=>{e.preventDefault();openFeatureRequest();};
+    document.getElementById("submitFeatureRequest").onclick=submitFeatureRequest;
+    document.getElementById("closeRequest").onclick=()=>requestDialog.close();
     document.getElementById("closeAuth").onclick=()=>authDialog.close();document.getElementById("closeCase").onclick=()=>closeCaseOverlay();document.getElementById("closePerson").onclick=()=>personDialog.close();
     document.getElementById("caseCorrectionBtn").onclick=()=>{if(currentCase)submitCorrection("case",currentCase.id)};
     document.getElementById("personCorrectionBtn").onclick=()=>{if(currentPerson)submitCorrection("person",currentPerson.id)};
     document.querySelectorAll("#modalSentenceBox .opinion-btn").forEach(b=>b.onclick=()=>voteSentence(b.dataset.target,b.dataset.choice));
     caseDialog.addEventListener("click",e=>{if(e.target===caseDialog)closeCaseOverlay()});
     document.addEventListener("keydown",e=>{if(e.key==="Escape"&&caseDialog.classList.contains("open"))closeCaseOverlay()});
-    personDialog.addEventListener("click",e=>{if(e.target===personDialog)personDialog.close()});authDialog.addEventListener("click",e=>{if(e.target===authDialog)authDialog.close()});
+    personDialog.addEventListener("click",e=>{if(e.target===personDialog)personDialog.close()});authDialog.addEventListener("click",e=>{if(e.target===authDialog)authDialog.close()});requestDialog.addEventListener("click",e=>{if(e.target===requestDialog)requestDialog.close()});
     const searchInput=document.getElementById("searchInput");
     const enableSearchInput=()=>{searchInput.readOnly=false;};
     searchInput.addEventListener("pointerdown",enableSearchInput,{once:true});
