@@ -730,8 +730,33 @@ window.COURTWATCH_ADS?.init(sb);
         all.push(...(data||[]));
         if(!data||data.length<batchSize)break;
       }
-      casesCache=all;renderCases("initial");
+
+      const publishedSummaries=[];
+      for(let start=0;;start+=batchSize){
+        const {data,error}=await sb.from("case_summaries")
+          .select("case_id,side_a_summary,side_b_summary,side_a_label,side_b_label")
+          .eq("status","published")
+          .range(start,start+batchSize-1);
+        if(error){console.error("case_summaries load failed",error);break;}
+        publishedSummaries.push(...(data||[]));
+        if(!data||data.length<batchSize)break;
+      }
+      const summaryByCase=new Map(publishedSummaries.map(s=>[s.case_id,s]));
+      casesCache=all.map(c=>({...c,published_summary:summaryByCase.get(c.id)||null}));
+      renderCases("initial");
     }
+
+    const listClaimHtml=c=>{
+      const s=c.published_summary;
+      if(!s||( !s.side_a_summary&&!s.side_b_summary))return "";
+      const defaults=c.category==="刑事"
+        ?["検察側の主張","弁護側の主張"]
+        :["原告・申立人側の主張","被告・相手方側の主張"];
+      const cells=[];
+      if(s.side_a_summary)cells.push('<div class="arg pros"><b>'+esc(s.side_a_label||defaults[0])+'</b>'+esc(s.side_a_summary)+'</div>');
+      if(s.side_b_summary)cells.push('<div class="arg def"><b>'+esc(s.side_b_label||defaults[1])+'</b>'+esc(s.side_b_summary)+'</div>');
+      return '<div class="arguments"'+(cells.length===1?' style="grid-template-columns:1fr"':'')+'>'+cells.join("")+'</div>';
+    };
 
     const roleLabel=role=>({judge:"裁判官",prosecutor:"検察官",lawyer:"弁護士",accused:"被告人",plaintiff:"原告",defendant:"被告",other:"その他"}[role]||role||"");
     let currentPeopleRole="all", currentPeopleQuery="", peopleVisibleLimit=48;
@@ -863,7 +888,7 @@ window.COURTWATCH_ADS?.init(sb);
           <div class="meta"><span class="badge">${esc(c.category||"未分類")}</span><span class="badge ${c.status==="審理中"?"live":""}">${esc(c.status||"")}</span><span>${esc(c.court||"")}</span><span>${esc(fmt(c.event_date))}${c.raw_metadata?.time_jst?" "+esc(c.raw_metadata.time_jst):""}</span>${c.raw_metadata?.case_number?'<span>'+esc(c.raw_metadata.case_number)+'</span>':""}</div>
           <h3>${esc(c.title)}</h3>
           <p class="summary">${esc(c.summary||"")}</p>
-          ${(c.prosecution_claim||c.defense_claim)?`<div class="arguments"><div class="arg pros"><b>検察・原告側の主張</b>${esc(c.prosecution_claim||"未取得")}</div><div class="arg def"><b>弁護・被告側の主張</b>${esc(c.defense_claim||"未取得")}</div></div>`:""}
+          ${listClaimHtml(c)}
           <div class="card-foot"><span class="notice">${c.updated_at?"更新 "+new Date(c.updated_at).toLocaleDateString("ja-JP"):""}</span><button class="discuss" type="button" onclick="openCase('${c.id}')">事件ページ・投稿</button></div>
         </article>`).join(""):'<div class="empty">該当する事件はありません。</div>';
     }
