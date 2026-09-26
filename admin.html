@@ -520,21 +520,26 @@ async function removeAdFreeUser(email){
 
 
 async function loadTraffic(){
-  const [summaryRes,dailyRes,topRes]=await Promise.all([
+  const [summaryRes,dailyRes,topRes,refRes,googleRes]=await Promise.all([
     sb.rpc("admin_traffic_summary"),
     sb.rpc("admin_traffic_daily",{p_days:30}),
-    sb.rpc("admin_traffic_top_pages",{p_days:30,p_limit:20})
+    sb.rpc("admin_traffic_top_pages",{p_days:30,p_limit:20}),
+    sb.rpc("admin_traffic_referrers",{p_days:30,p_limit:20}),
+    sb.rpc("admin_google_landing_pages",{p_days:30,p_limit:20})
   ]);
-  if(summaryRes.error||dailyRes.error||topRes.error){
+  if(summaryRes.error||dailyRes.error||topRes.error||refRes.error||googleRes.error){
     content.innerHTML='<div class="empty">アクセス統計を取得できません。</div>';
-    console.error(summaryRes.error||dailyRes.error||topRes.error);
+    console.error(summaryRes.error||dailyRes.error||topRes.error||refRes.error||googleRes.error);
     return;
   }
   const s=(summaryRes.data||[])[0]||{};
   const top=topRes.data||[];
+  const refs=refRes.data||[];
+  const google=googleRes.data||[];
   const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  const caseIds=[...new Set(top.filter(r=>r.page_type==="case"&&uuid.test(r.entity_id||"")).map(r=>r.entity_id))];
-  const personIds=[...new Set(top.filter(r=>r.page_type==="person"&&uuid.test(r.entity_id||"")).map(r=>r.entity_id))];
+  const allPages=[...top,...google];
+  const caseIds=[...new Set(allPages.filter(r=>r.page_type==="case"&&uuid.test(r.entity_id||"")).map(r=>r.entity_id))];
+  const personIds=[...new Set(allPages.filter(r=>r.page_type==="person"&&uuid.test(r.entity_id||"")).map(r=>r.entity_id))];
   const [caseRes,personRes]=await Promise.all([
     caseIds.length?sb.from("cases").select("id,title").in("id",caseIds):Promise.resolve({data:[]}),
     personIds.length?sb.from("people").select("id,display_name").in("id",personIds):Promise.resolve({data:[]})
@@ -542,6 +547,7 @@ async function loadTraffic(){
   const caseMap=Object.fromEntries((caseRes.data||[]).map(x=>[x.id,x.title]));
   const personMap=Object.fromEntries((personRes.data||[]).map(x=>[x.id,x.display_name]));
   const label=r=>r.page_type==="case"?(caseMap[r.entity_id]||"事件 "+(r.entity_id||"")):r.page_type==="person"?(personMap[r.entity_id]||"人物 "+(r.entity_id||"")):r.path;
+  const refLabel=x=>x==="internal"?"サイト内":x==="direct"?"直接・参照元なし":x==="google.com"||x==="google.co.jp"?"Google":x==="chatgpt.com"?"ChatGPT":x;
   const stat=(v,t)=>'<div class="stat"><b>'+Number(v||0).toLocaleString("ja-JP")+'</b><span>'+t+'</span></div>';
   const daily=(dailyRes.data||[]).slice().reverse();
   content.innerHTML=
@@ -554,11 +560,17 @@ async function loadTraffic(){
     '<div class="item"><div class="item-head"><div><b>直近30日の日別アクセス</b><div class="muted">PV＝ページ表示回数、訪問者＝ブラウザ単位の匿名ID数（訪問者数は2026/9/25以降を計測）</div></div></div>'+
       (daily.length?daily.map(r=>'<div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:10px;padding:7px 0;border-top:1px solid var(--line)"><span>'+esc(r.day)+'</span><span>PV '+Number(r.pv||0).toLocaleString("ja-JP")+'</span><span>訪問者 '+Number(r.visitors||0).toLocaleString("ja-JP")+'</span></div>').join(""):'<div class="empty">まだデータがありません。</div>')+
     '</div>'+
+    '<div class="item"><div class="item-head"><div><b>直近30日の流入元</b><div class="muted">Google・直接流入・サイト内遷移など。検索語そのものはSearch Console側で確認します。</div></div></div>'+
+      (refs.length?refs.map(r=>'<div style="display:grid;grid-template-columns:minmax(160px,1fr) 90px 110px;gap:10px;padding:8px 0;border-top:1px solid var(--line)"><span>'+esc(refLabel(r.referrer_host||"direct"))+'<div class="muted">'+esc(r.referrer_host||"direct")+'</div></span><span>PV '+Number(r.pv||0).toLocaleString("ja-JP")+'</span><span>訪問者 '+Number(r.visitors||0).toLocaleString("ja-JP")+'</span></div>').join(""):'<div class="empty">まだデータがありません。</div>')+
+    '</div>'+
+    '<div class="item"><div class="item-head"><div><b>Google検索からの着地ページ</b><div class="muted">Google経由で最初に閲覧されたページを集計します。</div></div></div>'+
+      (google.length?google.map((r,i)=>'<div style="display:grid;grid-template-columns:44px minmax(180px,1fr) 90px 110px;gap:10px;padding:8px 0;border-top:1px solid var(--line)"><span>#'+(i+1)+'</span><span>'+esc(label(r))+'<div class="muted">'+esc(r.path)+'</div></span><span>PV '+Number(r.pv||0).toLocaleString("ja-JP")+'</span><span>訪問者 '+Number(r.visitors||0).toLocaleString("ja-JP")+'</span></div>').join(""):'<div class="empty">Google流入はまだありません。</div>')+
+    '</div>'+
     '<div class="item"><div class="item-head"><div><b>直近30日の閲覧上位ページ</b></div></div>'+
       (top.length?top.map((r,i)=>'<div style="display:grid;grid-template-columns:44px minmax(180px,1fr) 90px 110px;gap:10px;padding:8px 0;border-top:1px solid var(--line)"><span>#'+(i+1)+'</span><span>'+esc(label(r))+'<div class="muted">'+esc(r.path)+'</div></span><span>PV '+Number(r.pv||0).toLocaleString("ja-JP")+'</span><span>訪問者 '+Number(r.visitors||0).toLocaleString("ja-JP")+'</span></div>').join(""):'<div class="empty">まだデータがありません。</div>')+
     '</div>';
 }
-\nasync function loadLogs(){
+nasync function loadLogs(){
   const {data,error}=await sb.from("moderation_log").select("id,admin_id,action,target_type,target_id,note,created_at").order("created_at",{ascending:false}).limit(200);
   if(error){content.innerHTML='<div class="empty">操作履歴を取得できません。</div>';return}
   content.innerHTML=data?.length?data.map(r=>`
